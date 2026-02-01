@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LeaveManager - Kurulum</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 40px; line-height: 1.5; }
+    .card { max-width: 720px; padding: 24px; border: 1px solid #ddd; border-radius: 12px; }
+    h1 { margin-top: 0; }
+    .btns { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+    a.btn { display: inline-block; padding: 12px 16px; border-radius: 10px; text-decoration: none; border: 1px solid #111; }
+    a.primary { background: #111; color: #fff; }
+    a.secondary { background: #fff; color: #111; }
+    code { background: #f6f6f6; padding: 2px 6px; border-radius: 6px; }
+    .note { color: #444; font-size: 14px; margin-top: 14px; }
+    ol { margin: 10px 0 0 18px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>LeaveManager – Kurulum</h1>
+    <p>Bu sayfa LeaveManager uygulamasını bilgisayarınıza kurmak içindir.</p>
+
+    <div class="btns">
+      <a class="btn primary" href="setup.exe">Kurulumu Başlat (setup.exe)</a>
+      <a class="btn secondary" href="LeaveManager.App.application">Uygulama Manifesti (.application)</a>
+    </div>
+
+    <h3>Notlar</h3>
+    <ol>
+      <li>Windows bir uyarı gösterirse: <b>More info → Run anyway</b>.</li>
+      <li>Uygulama verileri şurada tutulur: <code>%LocalAppData%\LeaveManager\data.db</code></li>
+      <li>Güncellemeler ClickOnce üzerinden otomatik alınır.</li>
+    </ol>
+
+    <p class="note">Bu sayfa GitHub Pages üzerinden host edilmektedir.</p>
+  </div>
+</body>
+</html>
