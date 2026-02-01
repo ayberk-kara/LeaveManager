@@ -1,0 +1,212 @@
+﻿<Window x:Class="LeaveManager.App.NewLeaveWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Yeni izin"
+        Width="520"
+        Height="420"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F5F6F8">
+
+    <Window.Resources>
+        <!-- Colors -->
+        <SolidColorBrush x:Key="CardBgBrush" Color="White"/>
+        <SolidColorBrush x:Key="BorderBrushSoft" Color="#E3E6EA"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#111827"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#6B7280"/>
+
+        <!-- Accent -->
+        <SolidColorBrush x:Key="AccentBrush" Color="#2563EB"/>
+
+        <!-- Card -->
+        <Style x:Key="CardBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource CardBgBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="Padding" Value="18"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+
+        <!-- TextBox / DatePicker base -->
+        <Style x:Key="FieldStyle" TargetType="{x:Type Control}">
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+
+        <!-- DatePicker: smooth-ish -->
+        <Style x:Key="SmoothDatePickerStyle" TargetType="DatePicker">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Background" Value="#FAFAFB"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <!-- ComboBox -->
+        <Style x:Key="SmoothComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Background" Value="#FAFAFB"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <!-- Buttons -->
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="18,12"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="12">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.95"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#F3F4F6"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="18,12"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="12">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.95"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="18">
+        <Border Style="{StaticResource CardBorderStyle}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="14"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="14"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="18"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="22"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Title -->
+                <StackPanel>
+                    <TextBlock Text="Yeni izin"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimary}"/>
+                    <TextBlock Text="Tarih aralığını ve izin türünü seçin."
+                               Margin="0,6,0,0"
+                               FontSize="13"
+                               Foreground="{StaticResource TextSecondary}"/>
+                </StackPanel>
+
+                <!-- Start / End -->
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="14"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Başlangıç"
+                                   FontSize="12"
+                                   Foreground="{StaticResource TextSecondary}"/>
+                        <DatePicker x:Name="StartDatePicker"
+                                    Margin="0,6,0,0"
+                                    Style="{StaticResource SmoothDatePickerStyle}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Bitiş"
+                                   FontSize="12"
+                                   Foreground="{StaticResource TextSecondary}"/>
+                        <DatePicker x:Name="EndDatePicker"
+                                    Margin="0,6,0,0"
+                                    Style="{StaticResource SmoothDatePickerStyle}"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Type -->
+                <StackPanel Grid.Row="4">
+                    <TextBlock Text="İzin türü"
+                               FontSize="12"
+                               Foreground="{StaticResource TextSecondary}"/>
+                    <ComboBox x:Name="LeaveTypeCombo"
+                              Margin="0,6,0,0"
+                              Style="{StaticResource SmoothComboBoxStyle}"
+                              SelectedIndex="0">
+                        <ComboBoxItem Content="Yıllık"/>
+                        <ComboBoxItem Content="Rapor"/>
+                        <ComboBoxItem Content="Ücretsiz"/>
+                    </ComboBox>
+                </StackPanel>
+
+                
+
+                <!-- Buttons -->
+                <Grid Grid.Row="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="2"
+                            Content="İptal"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            MinWidth="110"
+                            Click="Cancel_Click"/>
+
+                    <Button Grid.Column="4"
+                            Content="Kaydet"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            MinWidth="110"
+                            Click="Save_Click"/>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
