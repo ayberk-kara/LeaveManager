@@ -1,9 +1,10 @@
 ﻿<Window x:Class="LeaveManager.App.MainWindow"
+        x:Name="RootWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:LeaveManager.App;assembly=LeaveManager.App"
+        xmlns:local="clr-namespace:LeaveManager.App"
         mc:Ignorable="d"
         Title="LeaveManager"
         Width="1280"
@@ -128,7 +129,7 @@
             <Setter Property="FontSize" Value="14"/>
         </Style>
 
-        <!-- Highlight leave days -->
+        <!-- Highlight leave days (the ONLY visual indicator we keep) -->
         <Style x:Key="LeaveDayButtonStyle" TargetType="CalendarDayButton">
             <Setter Property="Margin" Value="2"/>
             <Setter Property="FontSize" Value="14"/>
@@ -136,13 +137,13 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="CalendarDayButton">
                         <Border x:Name="Bd"
-                                CornerRadius="10"
-                                BorderThickness="1"
-                                BorderBrush="Transparent"
-                                Background="Transparent"
-                                Padding="7">
+                        CornerRadius="10"
+                        BorderThickness="1"
+                        BorderBrush="Transparent"
+                        Background="Transparent"
+                        Padding="7">
                             <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"/>
+                                      VerticalAlignment="Center"/>
                         </Border>
 
                         <ControlTemplate.Triggers>
@@ -150,23 +151,27 @@
                                 <Setter TargetName="Bd" Property="Opacity" Value="0.35"/>
                             </Trigger>
 
-                            <Trigger Property="IsToday" Value="True">
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource BorderBrushSoft}"/>
-                            </Trigger>
+                            <!-- ✅ Today highlight kaldırıldı (hiç işaretleme yok) -->
 
+                            <!-- Keep click selection subtle -->
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentBrush}"/>
-                                <Setter Property="Foreground" Value="White"/>
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource BorderBrushSoft}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#F3F4F6"/>
                             </Trigger>
 
+                            <!-- ✅ Leave days highlight -->
                             <DataTrigger Value="True">
                                 <DataTrigger.Binding>
                                     <MultiBinding Converter="{StaticResource LeaveDayHighlightConverter}">
-                                        <Binding/>
-                                        <Binding Path="SelectedEmployeeLeaveDays" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                        <!-- Calendar day itself (DateTime) -->
+                                        <Binding />
+                                        <!-- ✅ ViewModel property (DataContext üzerinden) -->
+                                        <Binding ElementName="RootWindow" Path="DataContext.SelectedEmployeeLeaveDays"/>
+
+
                                     </MultiBinding>
                                 </DataTrigger.Binding>
+
                                 <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentSoftBrush}"/>
                                 <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
                                 <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
@@ -176,6 +181,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
 
         <Style TargetType="CalendarDayButton" BasedOn="{StaticResource LeaveDayButtonStyle}"/>
     </Window.Resources>
@@ -255,8 +261,6 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="14"/>
                     <RowDefinition Height="*"/>
-                    <RowDefinition Height="14"/>
-                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <!-- Header -->
@@ -321,10 +325,9 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- 4 calendars (fill the card) -->
+                <!-- 4 calendars -->
                 <Grid Grid.Row="2">
                     <UniformGrid Rows="2" Columns="2" Margin="0">
-                        <!-- CARD 1 -->
                         <Border Margin="0,0,10,10"
                                 Background="White"
                                 BorderBrush="{StaticResource BorderBrushSoft}"
@@ -338,7 +341,6 @@
                             </Viewbox>
                         </Border>
 
-                        <!-- CARD 2 -->
                         <Border Margin="10,0,0,10"
                                 Background="White"
                                 BorderBrush="{StaticResource BorderBrushSoft}"
@@ -352,7 +354,6 @@
                             </Viewbox>
                         </Border>
 
-                        <!-- CARD 3 -->
                         <Border Margin="0,10,10,0"
                                 Background="White"
                                 BorderBrush="{StaticResource BorderBrushSoft}"
@@ -366,7 +367,6 @@
                             </Viewbox>
                         </Border>
 
-                        <!-- CARD 4 -->
                         <Border Margin="10,10,0,0"
                                 Background="White"
                                 BorderBrush="{StaticResource BorderBrushSoft}"
@@ -381,53 +381,6 @@
                         </Border>
                     </UniformGrid>
                 </Grid>
-
-                <!-- Selected day leaves -->
-                <Border Grid.Row="4"
-                        Background="#FAFAFB"
-                        BorderBrush="{StaticResource BorderBrushSoft}"
-                        BorderThickness="1"
-                        CornerRadius="14"
-                        Padding="12">
-                    <StackPanel>
-                        <TextBlock Text="{Binding SelectedDayTitle}"
-                                   FontSize="13"
-                                   FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimary}"/>
-
-                        <ItemsControl ItemsSource="{Binding SelectedDayLeaves}"
-                                      Margin="0,8,0,0">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Background="White"
-                                            BorderBrush="{StaticResource BorderBrushSoft}"
-                                            BorderThickness="1"
-                                            CornerRadius="12"
-                                            Padding="10"
-                                            Margin="0,0,0,8">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Border Width="10" Height="10" CornerRadius="5" Background="{StaticResource AccentBrush}" Margin="0,4,10,0"/>
-                                            <StackPanel>
-                                                <TextBlock Text="{Binding Title}"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="{StaticResource TextPrimary}"/>
-                                                <TextBlock Text="{Binding Subtitle}"
-                                                           FontSize="12"
-                                                           Foreground="{StaticResource TextSecondary}"
-                                                           Margin="0,2,0,0"/>
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <TextBlock Text="{Binding SelectedDayEmptyHint}"
-                                   Foreground="{StaticResource TextSecondary}"
-                                   FontSize="12"
-                                   Visibility="{Binding IsSelectedDayEmptyHintVisible}"/>
-                    </StackPanel>
-                </Border>
             </Grid>
         </Border>
     </Grid>

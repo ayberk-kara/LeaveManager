@@ -84,11 +84,30 @@ namespace LeaveManager.App
                 return;
             }
 
-            MessageBox.Show(
-                "Sprint 1 sonraki adım: Yeni İzin penceresini açacağız.\nŞimdilik UI iskeletini kuruyoruz.",
-                "Bilgi",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            var dlg = new NewLeaveWindow
+            {
+                Owner = this
+            };
+
+            var ok = dlg.ShowDialog();
+            if (ok != true)
+                return;
+
+            if (!_vm.TryAddLeaveToSelectedEmployee(dlg.StartDate, dlg.EndDate, dlg.LeaveType, out var error))
+            {
+                MessageBox.Show(
+                    error,
+                    "İzin eklenemedi",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                return;
+            }
+
+            // Success: keep UX simple (no extra popup)
+            // Optionally, focus the month of the leave start:
+            _vm.BaseMonth = NormalizeToMonthStart(dlg.StartDate);
+            SetCalendarsToBaseMonth(_vm.BaseMonth);
         }
 
         private void Calendar_SelectedDatesChanged(object sender, SelectionChangedEventArgs e)
@@ -212,6 +231,46 @@ namespace LeaveManager.App
             OnPropertyChanged(nameof(SelectedDayTitle));
             RefreshSelectedDayLeaves();
         }
+
+        // ✅ NEW: Add leave with minimal Sprint-1 validation
+        public bool TryAddLeaveToSelectedEmployee(DateTime startDate, DateTime endDate, string type, out string error)
+        {
+            error = string.Empty;
+
+            if (SelectedEmployee == null)
+            {
+                error = "Önce bir personel seçin.";
+                return false;
+            }
+
+            var start = startDate.Date;
+            var end = endDate.Date;
+
+            if (end < start)
+            {
+                error = "Bitiş tarihi başlangıç tarihinden önce olamaz.";
+                return false;
+            }
+
+            // Overlap check (any intersection)
+            var overlaps = SelectedEmployee.Leaves.Any(l => RangesOverlap(start, end, l.StartDate, l.EndDate));
+            if (overlaps)
+            {
+                error = "Seçtiğiniz tarihlerde zaten izin var. Lütfen farklı bir aralık seçin.";
+                return false;
+            }
+
+            SelectedEmployee.Leaves.Add(new LeaveRecord(start, end, type));
+
+            // Refresh highlights and the selected-day list
+            UpdateSelectedEmployeeLeaveDays();
+            RefreshSelectedDayLeaves();
+
+            return true;
+        }
+
+        private static bool RangesOverlap(DateTime aStart, DateTime aEnd, DateTime bStart, DateTime bEnd)
+            => aStart <= bEnd && bStart <= aEnd;
 
         private void RefreshSelectedDayLeaves()
         {
