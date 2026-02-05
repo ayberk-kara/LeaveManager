@@ -1,33 +1,47 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Controls;
+using LeaveManager.Data.Models;
+using LeaveManager.Data.Repositories;
 
 namespace LeaveManager.App
 {
     public partial class NewLeaveWindow : Window
     {
+        // We keep these for UI flow (MainWindow can still read them if needed)
         public DateTime StartDate { get; private set; }
         public DateTime EndDate { get; private set; }
         public string LeaveType { get; private set; } = "Yıllık";
 
-        public NewLeaveWindow()
+        // Sprint 1: we must know for which employee we are saving the leave.
+        public int EmployeeId { get; }
+
+        public bool IsSavedToDatabase { get; private set; }
+
+        public NewLeaveWindow(int employeeId)
         {
             InitializeComponent();
+
+            EmployeeId = employeeId;
 
             // Default dates: today
             StartDatePicker.SelectedDate = DateTime.Today;
             EndDatePicker.SelectedDate = DateTime.Today;
+
+            // Default type: first item
             LeaveTypeCombo.SelectedIndex = 0;
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
+            IsSavedToDatabase = false;
             DialogResult = false;
             Close();
         }
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
+            // validate dates
             if (StartDatePicker.SelectedDate == null || EndDatePicker.SelectedDate == null)
             {
                 MessageBox.Show(
@@ -53,7 +67,7 @@ namespace LeaveManager.App
                 return;
             }
 
-            // Type
+            // resolve type from ComboBoxItem 
             if (LeaveTypeCombo.SelectedItem is ComboBoxItem item && item.Content != null)
                 LeaveType = item.Content.ToString() ?? "Yıllık";
             else
@@ -62,8 +76,31 @@ namespace LeaveManager.App
             StartDate = start;
             EndDate = end;
 
-            DialogResult = true;
-            Close();
+            try
+            {
+                var repo = new LeaveRepository();
+
+                repo.Add(new Leave
+                {
+                    EmployeeId = EmployeeId,
+                    StartDate = StartDate,
+                    EndDate = EndDate,
+                    Type = LeaveType,
+                    CreatedAt = DateTime.Now
+                });
+
+                IsSavedToDatabase = true;
+                DialogResult = true;
+                Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Kayıt sırasında bir hata oluştu.\n\nDetay: " + ex.Message,
+                    "Hata",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
     }
 }

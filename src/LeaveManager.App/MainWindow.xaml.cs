@@ -7,6 +7,8 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using LeaveManager.Data.Models;
+using LeaveManager.Data.Repositories;
 
 namespace LeaveManager.App
 {
@@ -84,7 +86,8 @@ namespace LeaveManager.App
                 return;
             }
 
-            var dlg = new NewLeaveWindow
+            // ✅ NewLeaveWindow now needs employeeId, because we will persist to DB
+            var dlg = new NewLeaveWindow(_vm.SelectedEmployee.Id)
             {
                 Owner = this
             };
@@ -93,18 +96,9 @@ namespace LeaveManager.App
             if (ok != true)
                 return;
 
-            if (!_vm.TryAddLeaveToSelectedEmployee(dlg.StartDate, dlg.EndDate, dlg.LeaveType, out var error))
-            {
-                MessageBox.Show(
-                    error,
-                    "İzin eklenemedi",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+            // ✅ After saving, refresh DB-backed lists
+            _vm.ReloadSelectedEmployeeLeavesFromDatabase();
 
-                return;
-            }
-
-            // Success: keep UX simple (no extra popup)
             // Optionally, focus the month of the leave start:
             _vm.BaseMonth = NormalizeToMonthStart(dlg.StartDate);
             SetCalendarsToBaseMonth(_vm.BaseMonth);
@@ -130,16 +124,21 @@ namespace LeaveManager.App
     }
 
     // ----------------------------
-    // ViewModel (Sprint 1 - demo)
+    // ViewModel (Sprint 1 - DB-backed)
     // ----------------------------
     public sealed class MainViewModel : INotifyPropertyChanged
     {
+        private readonly LeaveRepository _leaveRepository = new();
+
         private string _searchText = string.Empty;
         private EmployeeItem? _selectedEmployee;
         private DateTime _baseMonth = DateTime.Today;
         private DateTime _selectedDay = DateTime.Today;
 
         private HashSet<DateTime> _selectedEmployeeLeaveDays = new();
+
+        // DB-backed leaves for currently selected employee
+        private List<Leave> _selectedEmployeeLeaves = new();
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -149,7 +148,7 @@ namespace LeaveManager.App
 
         public MainViewModel()
         {
-            SeedDemoData();
+            SeedDemoEmployees();          // employees are still demo for Sprint 1
             ApplyEmployeeFilter();
             SetSelectedDay(DateTime.Today);
             UpdateHeaderHint();
@@ -187,9 +186,8 @@ namespace LeaveManager.App
                 _selectedEmployee = value;
                 OnPropertyChanged();
 
-                UpdateSelectedEmployeeLeaveDays();
+                ReloadSelectedEmployeeLeavesFromDatabase();
                 UpdateHeaderHint();
-                RefreshSelectedDayLeaves();
             }
         }
 
@@ -206,7 +204,7 @@ namespace LeaveManager.App
         public string HeaderHintText =>
             SelectedEmployee == null
                 ? "Lütfen soldan bir personel seçin."
-                : $"{SelectedEmployee.FullName} seçili. İzinli günler işaretlenir.";
+                : $"{SelectedEmployee.FullName} seçili. (Sprint 1: izinler DB'den okunuyor)";
 
         public string SelectedDayTitle
         {
@@ -232,45 +230,25 @@ namespace LeaveManager.App
             RefreshSelectedDayLeaves();
         }
 
-        // ✅ NEW: Add leave with minimal Sprint-1 validation
-        public bool TryAddLeaveToSelectedEmployee(DateTime startDate, DateTime endDate, string type, out string error)
+        // ✅ Called after saving a new leave (or when employee selection changes)
+        public void ReloadSelectedEmployeeLeavesFromDatabase()
         {
-            error = string.Empty;
-
             if (SelectedEmployee == null)
             {
-                error = "Önce bir personel seçin.";
-                return false;
+                _selectedEmployeeLeaves = new List<Leave>();
+                SelectedEmployeeLeaveDays = new HashSet<DateTime>();
+                RefreshSelectedDayLeaves();
+                return;
             }
 
-            var start = startDate.Date;
-            var end = endDate.Date;
+            _selectedEmployeeLeaves = _leaveRepository.GetByEmployee(SelectedEmployee.Id);
 
-            if (end < start)
-            {
-                error = "Bitiş tarihi başlangıç tarihinden önce olamaz.";
-                return false;
-            }
-
-            // Overlap check (any intersection)
-            var overlaps = SelectedEmployee.Leaves.Any(l => RangesOverlap(start, end, l.StartDate, l.EndDate));
-            if (overlaps)
-            {
-                error = "Seçtiğiniz tarihlerde zaten izin var. Lütfen farklı bir aralık seçin.";
-                return false;
-            }
-
-            SelectedEmployee.Leaves.Add(new LeaveRecord(start, end, type));
-
-            // Refresh highlights and the selected-day list
             UpdateSelectedEmployeeLeaveDays();
             RefreshSelectedDayLeaves();
 
-            return true;
+            OnPropertyChanged(nameof(IsSelectedDayEmptyHintVisible));
+            OnPropertyChanged(nameof(SelectedDayEmptyHint));
         }
-
-        private static bool RangesOverlap(DateTime aStart, DateTime aEnd, DateTime bStart, DateTime bEnd)
-            => aStart <= bEnd && bStart <= aEnd;
 
         private void RefreshSelectedDayLeaves()
         {
@@ -283,8 +261,8 @@ namespace LeaveManager.App
                 return;
             }
 
-            var leaves = SelectedEmployee.Leaves
-                .Where(l => l.IncludesDay(_selectedDay))
+            var leaves = _selectedEmployeeLeaves
+                .Where(l => IncludesDay(l.StartDate, l.EndDate, _selectedDay))
                 .OrderBy(l => l.StartDate)
                 .ToList();
 
@@ -311,7 +289,7 @@ namespace LeaveManager.App
 
             var days = new HashSet<DateTime>();
 
-            foreach (var leave in SelectedEmployee.Leaves)
+            foreach (var leave in _selectedEmployeeLeaves)
             {
                 var d = leave.StartDate.Date;
                 var end = leave.EndDate.Date;
@@ -324,6 +302,12 @@ namespace LeaveManager.App
             }
 
             SelectedEmployeeLeaveDays = days;
+        }
+
+        private static bool IncludesDay(DateTime start, DateTime end, DateTime day)
+        {
+            var d = day.Date;
+            return d >= start.Date && d <= end.Date;
         }
 
         private void UpdateHeaderHint() => OnPropertyChanged(nameof(HeaderHintText));
@@ -346,29 +330,12 @@ namespace LeaveManager.App
                 Employees.Add(emp);
         }
 
-        private void SeedDemoData()
+        private void SeedDemoEmployees()
         {
-            AllEmployees.Add(new EmployeeItem("Ayberk Kara", "Kod: 001")
-            {
-                Leaves =
-                {
-                    new LeaveRecord(new DateTime(2026, 1, 3), new DateTime(2026, 1, 5), "Yıllık"),
-                    new LeaveRecord(new DateTime(2026, 2, 10), new DateTime(2026, 2, 11), "Rapor"),
-                    new LeaveRecord(new DateTime(2026, 3, 20), new DateTime(2026, 3, 22), "Yıllık")
-                }
-            });
-
-            AllEmployees.Add(new EmployeeItem("Elif Yılmaz", "Kod: 002")
-            {
-                Leaves =
-                {
-                    new LeaveRecord(new DateTime(2026, 2, 1), new DateTime(2026, 2, 3), "Yıllık"),
-                    new LeaveRecord(new DateTime(2026, 4, 14), new DateTime(2026, 4, 14), "Rapor")
-                }
-            });
-
-            AllEmployees.Add(new EmployeeItem("Mehmet Demir", "Kod: 003"));
-            AllEmployees.Add(new EmployeeItem("Zeynep Aydın", "Kod: 004"));
+            AllEmployees.Add(new EmployeeItem(1, "Ayberk Kara", "Kod: 001"));
+            AllEmployees.Add(new EmployeeItem(2, "Elif Yılmaz", "Kod: 002"));
+            AllEmployees.Add(new EmployeeItem(3, "Mehmet Demir", "Kod: 003"));
+            AllEmployees.Add(new EmployeeItem(4, "Zeynep Aydın", "Kod: 004"));
         }
 
         private void OnPropertyChanged([CallerMemberName] string? name = null)
@@ -377,9 +344,9 @@ namespace LeaveManager.App
 
     public sealed class EmployeeItem
     {
+        public int Id { get; }
         public string FullName { get; }
         public string Subtitle { get; }
-        public ObservableCollection<LeaveRecord> Leaves { get; } = new();
 
         public string Initials
         {
@@ -392,30 +359,11 @@ namespace LeaveManager.App
             }
         }
 
-        public EmployeeItem(string fullName, string subtitle)
+        public EmployeeItem(int id, string fullName, string subtitle)
         {
+            Id = id;
             FullName = fullName;
             Subtitle = subtitle;
-        }
-    }
-
-    public sealed class LeaveRecord
-    {
-        public DateTime StartDate { get; }
-        public DateTime EndDate { get; }
-        public string Type { get; }
-
-        public LeaveRecord(DateTime startDate, DateTime endDate, string type)
-        {
-            StartDate = startDate.Date;
-            EndDate = endDate.Date;
-            Type = type;
-        }
-
-        public bool IncludesDay(DateTime day)
-        {
-            var d = day.Date;
-            return d >= StartDate && d <= EndDate;
         }
     }
 

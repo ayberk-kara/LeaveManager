@@ -12,7 +12,8 @@ namespace LeaveManager.Data
         private static readonly List<IMigration> Migrations = new()
         {
             new Migration_001_Init(),
-            new Migration_002_CreateTablesV1()
+            new Migration_002_CreateTablesV1(),
+            new Migration_003_CreateLeavesTable()
         };
 
         public static void RunMigrations()
