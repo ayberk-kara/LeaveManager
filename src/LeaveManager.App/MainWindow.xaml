@@ -65,6 +65,8 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        
+        
 
         <!-- TextBox -->
         <Style x:Key="SmoothTextBoxStyle" TargetType="TextBox">
@@ -204,11 +206,26 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Text="Personeller"
-                           FontSize="18"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource TextPrimary}"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
+                    <TextBlock Text="Personeller"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource TextPrimary}"
+                       VerticalAlignment="Center"/>
+
+                    <Button Grid.Column="1"
+                            Content="Yeni Personel"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Height="40"
+                            MinWidth="120"
+                            Padding="20,0"
+                            Click="NewEmployee_Click"/>
+                        </Grid>
                 <TextBlock Grid.Row="2"
                            Text="Arama"
                            FontSize="12"

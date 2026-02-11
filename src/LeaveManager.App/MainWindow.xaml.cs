@@ -37,11 +37,8 @@ namespace LeaveManager.App
             var start = NormalizeToMonthStart(monthStart);
             var end = MonthEnd(start);
 
-            // Lock the calendar to this month
             cal.DisplayDateStart = start;
             cal.DisplayDateEnd = end;
-
-            // Force display to this month
             cal.DisplayDate = start;
         }
 
@@ -86,7 +83,6 @@ namespace LeaveManager.App
                 return;
             }
 
-            // ✅ NewLeaveWindow now needs employeeId, because we will persist to DB
             var dlg = new NewLeaveWindow(_vm.SelectedEmployee.Id)
             {
                 Owner = this
@@ -96,10 +92,8 @@ namespace LeaveManager.App
             if (ok != true)
                 return;
 
-            // ✅ After saving, refresh DB-backed lists
             _vm.ReloadSelectedEmployeeLeavesFromDatabase();
 
-            // Optionally, focus the month of the leave start:
             _vm.BaseMonth = NormalizeToMonthStart(dlg.StartDate);
             SetCalendarsToBaseMonth(_vm.BaseMonth);
         }
@@ -115,20 +109,34 @@ namespace LeaveManager.App
             var selected = calendar.SelectedDate.Value.Date;
             _vm.SetSelectedDay(selected);
 
-            // Clear other calendars selection
             if (!ReferenceEquals(calendar, Cal1)) Cal1.SelectedDate = null;
             if (!ReferenceEquals(calendar, Cal2)) Cal2.SelectedDate = null;
             if (!ReferenceEquals(calendar, Cal3)) Cal3.SelectedDate = null;
             if (!ReferenceEquals(calendar, Cal4)) Cal4.SelectedDate = null;
         }
+
+        private void NewEmployee_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new AddEmployeeChoiceWindow();
+            dialog.Owner = this;
+
+            var result = dialog.ShowDialog();
+
+            if (result == true)
+            {
+                MessageBox.Show("Tekli ekleme ekranı açılacak.");
+            }
+            else if (result == false)
+            {
+                MessageBox.Show("Toplu ekleme ekranı açılacak.");
+            }
+        }
     }
 
-    // ----------------------------
-    // ViewModel (Sprint 1 - DB-backed)
-    // ----------------------------
     public sealed class MainViewModel : INotifyPropertyChanged
     {
         private readonly LeaveRepository _leaveRepository = new();
+        private readonly EmployeeRepository _employeeRepository = new();
 
         private string _searchText = string.Empty;
         private EmployeeItem? _selectedEmployee;
@@ -136,8 +144,6 @@ namespace LeaveManager.App
         private DateTime _selectedDay = DateTime.Today;
 
         private HashSet<DateTime> _selectedEmployeeLeaveDays = new();
-
-        // DB-backed leaves for currently selected employee
         private List<Leave> _selectedEmployeeLeaves = new();
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -148,10 +154,26 @@ namespace LeaveManager.App
 
         public MainViewModel()
         {
-            
+            LoadEmployeesFromDatabase();
             ApplyEmployeeFilter();
             SetSelectedDay(DateTime.Today);
             UpdateHeaderHint();
+        }
+
+        private void LoadEmployeesFromDatabase()
+        {
+            AllEmployees.Clear();
+
+            var employees = _employeeRepository.GetAllActive();
+
+            foreach (var emp in employees)
+            {
+                AllEmployees.Add(new EmployeeItem(
+                    emp.Id,
+                    emp.FullName,
+                    $"Sicil: {emp.SicilNo}"
+                ));
+            }
         }
 
         public DateTime BaseMonth
@@ -204,7 +226,7 @@ namespace LeaveManager.App
         public string HeaderHintText =>
             SelectedEmployee == null
                 ? "Lütfen soldan bir personel seçin."
-                : $"{SelectedEmployee.FullName} seçili. (Sprint 1: izinler DB'den okunuyor)";
+                : $"{SelectedEmployee.FullName} seçili.";
 
         public string SelectedDayTitle
         {
@@ -230,7 +252,6 @@ namespace LeaveManager.App
             RefreshSelectedDayLeaves();
         }
 
-        // ✅ Called after saving a new leave (or when employee selection changes)
         public void ReloadSelectedEmployeeLeavesFromDatabase()
         {
             if (SelectedEmployee == null)
@@ -250,6 +271,8 @@ namespace LeaveManager.App
             OnPropertyChanged(nameof(SelectedDayEmptyHint));
         }
 
+
+
         private void RefreshSelectedDayLeaves()
         {
             SelectedDayLeaves.Clear();
@@ -257,7 +280,6 @@ namespace LeaveManager.App
             if (SelectedEmployee == null)
             {
                 OnPropertyChanged(nameof(IsSelectedDayEmptyHintVisible));
-                OnPropertyChanged(nameof(SelectedDayEmptyHint));
                 return;
             }
 
@@ -276,7 +298,6 @@ namespace LeaveManager.App
             }
 
             OnPropertyChanged(nameof(IsSelectedDayEmptyHintVisible));
-            OnPropertyChanged(nameof(SelectedDayEmptyHint));
         }
 
         private void UpdateSelectedEmployeeLeaveDays()
@@ -330,10 +351,11 @@ namespace LeaveManager.App
                 Employees.Add(emp);
         }
 
-
         private void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
+
+
 
     public sealed class EmployeeItem
     {
@@ -347,8 +369,8 @@ namespace LeaveManager.App
             {
                 var parts = FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length == 0) return "?";
-                if (parts.Length == 1) return parts[0].Substring(0, 1).ToUpperInvariant();
-                return (parts[0].Substring(0, 1) + parts[^1].Substring(0, 1)).ToUpperInvariant();
+                if (parts.Length == 1) return parts[0][0].ToString().ToUpperInvariant();
+                return (parts[0][0].ToString() + parts[^1][0].ToString()).ToUpperInvariant();
             }
         }
 
