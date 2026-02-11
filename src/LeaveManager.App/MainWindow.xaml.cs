@@ -148,7 +148,7 @@ namespace LeaveManager.App
 
         public MainViewModel()
         {
-            SeedDemoEmployees();          // employees are still demo for Sprint 1
+            
             ApplyEmployeeFilter();
             SetSelectedDay(DateTime.Today);
             UpdateHeaderHint();
@@ -330,13 +330,6 @@ namespace LeaveManager.App
                 Employees.Add(emp);
         }
 
-        private void SeedDemoEmployees()
-        {
-            AllEmployees.Add(new EmployeeItem(1, "Ayberk Kara", "Kod: 001"));
-            AllEmployees.Add(new EmployeeItem(2, "Elif Yılmaz", "Kod: 002"));
-            AllEmployees.Add(new EmployeeItem(3, "Mehmet Demir", "Kod: 003"));
-            AllEmployees.Add(new EmployeeItem(4, "Zeynep Aydın", "Kod: 004"));
-        }
 
         private void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

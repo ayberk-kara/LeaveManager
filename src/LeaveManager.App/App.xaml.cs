@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using LeaveManager.Data;
 using LeaveManager.Data.Storage;
+using Microsoft.Data.Sqlite;
 
 namespace LeaveManager.App
 {
@@ -10,8 +11,19 @@ namespace LeaveManager.App
         {
             base.OnStartup(e);
 
-            DbInitializer.EnsureDatabaseReady();
-            MigrationRunner.RunMigrations();
+            // create and open sqlite connection
+            using var connection = new SqliteConnection(
+                new SqliteConnectionStringBuilder
+                {
+                    DataSource = DbPaths.DatabasePath,
+                    Mode = SqliteOpenMode.ReadWriteCreate
+                }.ToString()
+            );
+
+            connection.Open();
+
+            // run all pending migrations
+            MigrationRunner.Run(connection);
         }
     }
 }

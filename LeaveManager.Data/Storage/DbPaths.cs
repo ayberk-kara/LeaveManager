@@ -5,17 +5,25 @@ namespace LeaveManager.Data.Storage
 {
     public static class DbPaths
     {
-        // %LocalAppData%\LeaveManager
+        // returns %LocalAppData%\LeaveManager
         public static string GetDbFolderPath()
         {
             var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            return Path.Combine(localAppData, "LeaveManager");
+            var folder = Path.Combine(localAppData, "LeaveManager");
+
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder);
+
+            return folder;
         }
 
-        // %LocalAppData%\LeaveManager\data.db
+        // returns full database file path
         public static string GetDbFilePath()
         {
             return Path.Combine(GetDbFolderPath(), "data.db");
         }
+
+        // canonical property used by migration runner and app startup
+        public static string DatabasePath => GetDbFilePath();
     }
 }

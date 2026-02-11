@@ -1,110 +1,64 @@
 ﻿using Microsoft.Data.Sqlite;
 using LeaveManager.Data.Migrations;
-using LeaveManager.Data.Storage;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace LeaveManager.Data
 {
     public static class MigrationRunner
     {
-        private static readonly List<IMigration> Migrations = new()
+        public static void Run(SqliteConnection connection)
         {
-            new Migration_001_Init()
-        };
+            EnsureMetaTable(connection);
 
-        public static void RunMigrations()
-        {
-            var dbPath = DbPaths.GetDbFilePath();
+            var currentVersion = GetCurrentVersion(connection);
 
-            using var connection = CreateConnection(dbPath);
-            connection.Open();
-
-            using var transaction = connection.BeginTransaction();
-
-            try
+            var migrations = new IMigration[]
             {
-                var currentVersion = GetCurrentVersion(connection, transaction);
-
-                var pendingMigrations = Migrations
-                    .Where(m => m.Version > currentVersion)
-                    .OrderBy(m => m.Version)
-                    .ToList();
-
-                foreach (var migration in pendingMigrations)
-                {
-                    migration.Up(connection); // Migration itself executes SQL
-                    UpdateSchemaVersion(connection, transaction, migration.Version);
-                }
-
-                transaction.Commit();
-            }
-            catch
-            {
-                transaction.Rollback();
-                throw;
-            }
-        }
-
-        private static int GetCurrentVersion(SqliteConnection connection, SqliteTransaction transaction)
-        {
-            // 1) Does AppMeta exist?
-            using (var existsCmd = connection.CreateCommand())
-            {
-                existsCmd.Transaction = transaction;
-                existsCmd.CommandText = @"
-SELECT 1
-FROM sqlite_master
-WHERE type = 'table' AND name = 'AppMeta'
-LIMIT 1;
-";
-                var exists = existsCmd.ExecuteScalar();
-                if (exists == null)
-                {
-                    // No AppMeta table yet => DB is at version 0
-                    return 0;
-                }
-            }
-
-            // 2) AppMeta exists, try read schema_version
-            using (var command = connection.CreateCommand())
-            {
-                command.Transaction = transaction;
-                command.CommandText = @"SELECT value FROM AppMeta WHERE key = 'schema_version' LIMIT 1;";
-                var result = command.ExecuteScalar();
-
-                if (result == null)
-                    return 0;
-
-                return int.Parse(result.ToString()!);
-            }
-        }
-
-        private static void UpdateSchemaVersion(SqliteConnection connection, SqliteTransaction transaction, int version)
-        {
-            // AppMeta must exist by this point (Migration_001 creates it)
-            using var command = connection.CreateCommand();
-            command.Transaction = transaction;
-
-            command.CommandText = @"
-UPDATE AppMeta
-SET value = $version
-WHERE key = 'schema_version';
-";
-            command.Parameters.AddWithValue("$version", version.ToString());
-            command.ExecuteNonQuery();
-        }
-
-        private static SqliteConnection CreateConnection(string dbPath)
-        {
-            var builder = new SqliteConnectionStringBuilder
-            {
-                DataSource = dbPath,
-                Mode = SqliteOpenMode.ReadWriteCreate
+                new Migration_001_Init()
             };
 
-            return new SqliteConnection(builder.ToString());
+            foreach (var migration in migrations.OrderBy(m => m.Version))
+            {
+                if (migration.Version > currentVersion)
+                {
+                    migration.Up(connection);
+                    SetVersion(connection, migration.Version);
+                }
+            }
+        }
+
+        private static void EnsureMetaTable(SqliteConnection connection)
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS AppMeta (
+    version INTEGER NOT NULL
+);";
+            cmd.ExecuteNonQuery();
+
+            // ensure single row exists
+            cmd.CommandText = "SELECT COUNT(*) FROM AppMeta;";
+            var count = Convert.ToInt32(cmd.ExecuteScalar());
+
+            if (count == 0)
+            {
+                cmd.CommandText = "INSERT INTO AppMeta (version) VALUES (0);";
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private static int GetCurrentVersion(SqliteConnection connection)
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT version FROM AppMeta LIMIT 1;";
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        }
+
+        private static void SetVersion(SqliteConnection connection, int version)
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "UPDATE AppMeta SET version = $version;";
+            cmd.Parameters.AddWithValue("$version", version);
+            cmd.ExecuteNonQuery();
         }
     }
 }

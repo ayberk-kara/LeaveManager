@@ -16,11 +16,11 @@ CREATE TABLE IF NOT EXISTS Employees (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sicil_no INTEGER NOT NULL UNIQUE,
     full_name TEXT NOT NULL,
-    role INTEGER NOT NULL, -- 0 employee, 1 assistant, 2 director
+    role INTEGER NOT NULL, -- 0 manager, 1 assistant, 2 employee
     manager_id INTEGER NULL,
     is_active INTEGER NOT NULL DEFAULT 1,
     created_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
-    FOREIGN KEY(manager_id) REFERENCES Employees(id)
+    FOREIGN KEY(manager_id) REFERENCES Employees(id) ON DELETE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS Leaves (
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS Leaves (
     type TEXT NOT NULL,
     note TEXT NULL,
     created_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
-    FOREIGN KEY(employee_id) REFERENCES Employees(id)
+    FOREIGN KEY(employee_id) REFERENCES Employees(id) ON DELETE RESTRICT
 );
 
 ";

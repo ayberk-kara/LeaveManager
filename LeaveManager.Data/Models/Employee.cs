@@ -11,15 +11,17 @@
     {
         public int Id { get; set; }
 
-        // unique and never changes
+        // unique personnel number, numeric only, never changes
         public int SicilNo { get; set; }
 
         public string FullName { get; set; } = string.Empty;
 
         public EmployeeRole Role { get; set; }
 
-        // assistant or employee reports to someone
-        // manager has null
+        // reporting hierarchy:
+        // manager -> null
+        // assistant -> must report to manager
+        // employee -> must report to assistant
         public int? ManagerId { get; set; }
 
         // soft delete flag
