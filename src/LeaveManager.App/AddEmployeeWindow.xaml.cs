@@ -32,7 +32,7 @@ namespace LeaveManager.App
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Şimdilik sadece UI. Backend bir sonraki adım.");
+            MessageBox.Show("only ui for now");
         }
     }
 }
