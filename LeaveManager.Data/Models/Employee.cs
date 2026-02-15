@@ -18,7 +18,6 @@
         public EmployeeRole Role { get; set; }
 
         // reporting hierarchy:
-        // manager -> null
         // assistant -> must report to manager
         // employee -> must report to assistant
         public int? ManagerId { get; set; }

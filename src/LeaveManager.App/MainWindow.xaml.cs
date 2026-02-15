@@ -26,6 +26,40 @@ namespace LeaveManager.App
             SetCalendarsToBaseMonth(_vm.BaseMonth);
         }
 
+        private void ManageEmployee_Click(object sender, RoutedEventArgs e)
+        {
+            if (_vm.SelectedEmployee == null)
+                return;
+
+            int sicilNo = ExtractSicilNo(_vm.SelectedEmployee.Subtitle);
+
+            var dialog = new EditEmployeeWindow(
+                _vm.SelectedEmployee.FullName,
+                sicilNo)
+            {
+                Owner = this
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                _vm.UpdateEmployee(
+                    _vm.SelectedEmployee.Id,
+                    dialog.UpdatedName,
+                    dialog.UpdatedSicilNo);
+            }
+        }
+
+        private int ExtractSicilNo(string subtitle)
+        {
+            // Format: "Sicil: 1234"
+            var parts = subtitle.Split(':');
+            if (parts.Length != 2)
+                return 0;
+
+            return int.TryParse(parts[1].Trim(), out var no) ? no : 0;
+        }
+
+
         private static DateTime NormalizeToMonthStart(DateTime anyDate)
             => new DateTime(anyDate.Year, anyDate.Month, 1);
 
@@ -131,6 +165,7 @@ namespace LeaveManager.App
         }
     }
 
+    // ----------- VIEW MODEL --------------
     public sealed class MainViewModel : INotifyPropertyChanged
     {
         private readonly LeaveRepository _leaveRepository = new();
@@ -149,6 +184,7 @@ namespace LeaveManager.App
         public ObservableCollection<EmployeeItem> AllEmployees { get; } = new();
         public ObservableCollection<EmployeeItem> Employees { get; } = new();
         public ObservableCollection<LeaveListItem> SelectedDayLeaves { get; } = new();
+
 
         public MainViewModel()
         {
@@ -189,6 +225,7 @@ namespace LeaveManager.App
                 OnPropertyChanged();
             }
         }
+
 
         public string SearchText
         {
@@ -356,6 +393,23 @@ namespace LeaveManager.App
 
         private void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+
+        public void UpdateEmployee(int id, string fullName, int sicilNo)
+        {
+            var employees = _employeeRepository.GetAllActive();
+            var employee = employees.FirstOrDefault(e => e.Id == id);
+
+            if (employee == null)
+                return;
+
+            employee.FullName = fullName;
+            employee.SicilNo = sicilNo;
+
+            _employeeRepository.Update(employee);
+
+            ReloadEmployeesFromDatabase();
+        }
     }
 
 

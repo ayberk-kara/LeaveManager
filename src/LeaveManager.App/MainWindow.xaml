@@ -238,35 +238,57 @@
                          ToolTip="Ad veya kod ile arayın"/>
 
                 <ListBox Grid.Row="4"
-                         Margin="0,10,0,0"
-                         ItemsSource="{Binding Employees}"
-                         SelectedItem="{Binding SelectedEmployee, Mode=TwoWay}"
-                         Background="Transparent"
-                         BorderThickness="0"
-                         ItemContainerStyle="{StaticResource EmployeeListBoxItemStyle}">
+         Margin="0,10,0,0"
+         ItemsSource="{Binding Employees}"
+         SelectedItem="{Binding SelectedEmployee, Mode=TwoWay}"
+         Background="Transparent"
+         BorderThickness="0">
+
+                    <!-- Item Style + Right Click Menu -->
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem"
+                                BasedOn="{StaticResource EmployeeListBoxItemStyle}" />
+                    </ListBox.ItemContainerStyle>
+
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Personeli Yönet"
+                             Click="ManageEmployee_Click"/>
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+
+                    <!-- Görsel Şablon -->
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Border Width="36" Height="36" CornerRadius="18" Background="#EEF2FF" BorderBrush="#E5E7EB" BorderThickness="1">
+                                <Border Width="36"
+                        Height="36"
+                        CornerRadius="18"
+                        Background="#EEF2FF"
+                        BorderBrush="#E5E7EB"
+                        BorderThickness="1">
+
                                     <TextBlock Text="{Binding Initials}"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"
-                                               FontWeight="SemiBold"
-                                               Foreground="#374151"/>
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               FontWeight="SemiBold"
+                               Foreground="#374151"/>
                                 </Border>
 
                                 <StackPanel Margin="10,0,0,0">
                                     <TextBlock Text="{Binding FullName}"
-                                               FontSize="14"
-                                               FontWeight="SemiBold"
-                                               Foreground="{StaticResource TextPrimary}"/>
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimary}"/>
+
                                     <TextBlock Text="{Binding Subtitle}"
-                                               FontSize="12"
-                                               Foreground="{StaticResource TextSecondary}"/>
+                               FontSize="12"
+                               Foreground="{StaticResource TextSecondary}"/>
                                 </StackPanel>
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
+
                 </ListBox>
             </Grid>
         </Border>

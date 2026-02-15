@@ -78,6 +78,51 @@ namespace LeaveManager.Data.Repositories
         }
 
         // -----------------------------
+        // UPDATE  (All Employee)
+        // -----------------------------
+        public void Update(Employee employee)
+        {
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+        UPDATE Employees
+        SET full_name = @full_name,
+            role = @role,
+            manager_id = @manager_id
+        WHERE id = @id;
+    ";
+
+            cmd.Parameters.AddWithValue("@id", employee.Id);
+            cmd.Parameters.AddWithValue("@full_name", employee.FullName);
+            cmd.Parameters.AddWithValue("@role", (int)employee.Role);
+            cmd.Parameters.AddWithValue("@manager_id",
+                employee.ManagerId.HasValue ? employee.ManagerId : DBNull.Value);
+
+            cmd.ExecuteNonQuery();
+        }
+
+        // -----------------------------
+        // DELETE (SOFT)
+        // -----------------------------
+        public void SoftDelete(int id)
+        {
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+        UPDATE Employees
+        SET is_active = 0
+        WHERE id = @id;
+    ";
+
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.ExecuteNonQuery();
+        }
+
+        // -----------------------------
         // GET ASSISTANTS (Role = Assistant)
         // -----------------------------
         public List<Employee> GetAssistants()
