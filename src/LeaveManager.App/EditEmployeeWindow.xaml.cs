@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Windows;
 using LeaveManager.Models;
 
@@ -12,6 +13,12 @@ namespace LeaveManager.App
         public EmployeeRole UpdatedRole { get; private set; }
         public bool IsDeleteRequested { get; private set; }
 
+        private readonly Dictionary<EmployeeRole, string> _roleMap = new()
+        {
+            { EmployeeRole.Assistant, "Müdür Yardımcısı" },
+            { EmployeeRole.Employee, "Personel" }
+        };
+
         public EditEmployeeWindow(string fullName, int sicilNo, EmployeeRole role)
         {
             InitializeComponent();
@@ -20,14 +27,13 @@ namespace LeaveManager.App
             txtName.Text = fullName;
             txtRegistryNo.Text = sicilNo.ToString();
 
-            cmbRole.ItemsSource = Enum.GetValues(typeof(EmployeeRole));
-            cmbRole.SelectedItem = role;
+            // Rol ComboBox
+            cmbRole.ItemsSource = new List<string>(_roleMap.Values);
+            cmbRole.SelectedItem = _roleMap[role];
         }
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
-            // --- VALIDATION ---
-
             if (string.IsNullOrWhiteSpace(txtName.Text))
             {
                 MessageBox.Show("Ad Soyad boş olamaz.", "Uyarı",
@@ -49,13 +55,20 @@ namespace LeaveManager.App
                 return;
             }
 
-            // --- SET OUTPUT VALUES ---
             UpdatedName = txtName.Text.Trim();
             UpdatedSicilNo = sicilNo;
-            UpdatedRole = (EmployeeRole)cmbRole.SelectedItem;
+
+            // Rolu enum olarak geri çevir
+            foreach (var kv in _roleMap)
+            {
+                if (kv.Value == cmbRole.SelectedItem.ToString())
+                {
+                    UpdatedRole = kv.Key;
+                    break;
+                }
+            }
 
             IsDeleteRequested = false;
-
             DialogResult = true;
         }
 

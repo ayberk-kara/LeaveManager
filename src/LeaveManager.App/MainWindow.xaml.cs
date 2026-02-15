@@ -57,7 +57,7 @@ namespace LeaveManager.App
             }
         }
 
-        // -------- Calendar logic aynı --------
+        // -------- Calendar logic --------
 
         private static DateTime NormalizeToMonthStart(DateTime anyDate)
             => new DateTime(anyDate.Year, anyDate.Month, 1);
@@ -162,10 +162,12 @@ namespace LeaveManager.App
 
         private EmployeeItem? _selectedEmployee;
         private DateTime _baseMonth = DateTime.Today;
+        private DateTime? _selectedDay;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
         public ObservableCollection<EmployeeItem> Employees { get; } = new();
+        public ObservableCollection<LeaveItem> SelectedEmployeeLeaves { get; } = new();
 
         public MainViewModel()
         {
@@ -189,6 +191,41 @@ namespace LeaveManager.App
             {
                 _selectedEmployee = value;
                 OnPropertyChanged();
+            }
+        }
+
+        public DateTime? SelectedDay
+        {
+            get => _selectedDay;
+            private set
+            {
+                _selectedDay = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public void SetSelectedDay(DateTime day)
+        {
+            SelectedDay = day;
+            
+        }
+
+        public void ReloadSelectedEmployeeLeavesFromDatabase()
+        {
+            SelectedEmployeeLeaves.Clear();
+
+            if (SelectedEmployee == null)
+                return;
+
+            var leaves = _leaveRepository.GetByEmployee(SelectedEmployee.Id);
+
+            foreach (var leave in leaves)
+            {
+                SelectedEmployeeLeaves.Add(new LeaveItem(
+                    leave.Id,
+                    leave.StartDate,
+                    leave.EndDate,
+                    leave.Type));
             }
         }
 
@@ -224,12 +261,7 @@ namespace LeaveManager.App
 
         public void DeleteEmployee(int id)
         {
-            var employee = _employeeRepository.GetById(id);
-            if (employee == null) return;
-
-            employee.IsActive = false;   // soft delete
-            _employeeRepository.Update(employee);
-
+            _employeeRepository.SoftDelete(id);
             ReloadEmployeesFromDatabase();
         }
 
@@ -265,6 +297,24 @@ namespace LeaveManager.App
             FullName = fullName;
             SicilNo = sicilNo;
             Role = role;
+        }
+    }
+
+    // ================= LEAVE ITEM =================
+
+    public sealed class LeaveItem
+    {
+        public int Id { get; }
+        public DateTime StartDate { get; }
+        public DateTime EndDate { get; }
+        public string Type { get; }
+
+        public LeaveItem(int id, DateTime startDate, DateTime endDate, string type)
+        {
+            Id = id;
+            StartDate = startDate;
+            EndDate = endDate;
+            Type = type;
         }
     }
 }

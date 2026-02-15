@@ -31,22 +31,40 @@ namespace LeaveManager.Data.Repositories
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                list.Add(new Employee
-                {
-                    Id = reader.GetInt32(0),
-                    SicilNo = reader.GetInt32(1),
-                    FullName = reader.GetString(2),
-                    Role = (EmployeeRole)reader.GetInt32(3),
-                    ManagerId = reader.IsDBNull(4) ? null : reader.GetInt32(4),
-                    IsActive = reader.GetInt32(5) == 1
-                });
+                list.Add(Map(reader));
             }
 
             return list;
         }
 
         // -----------------------------
-        // ADD EMPLOYEE
+        // GET BY ID 
+        // -----------------------------
+        public Employee? GetById(int id)
+        {
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+                SELECT id, sicil_no, full_name, role, manager_id, is_active
+                FROM Employees
+                WHERE id = @id;
+            ";
+
+            cmd.Parameters.AddWithValue("@id", id);
+
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                return Map(reader);
+            }
+
+            return null;
+        }
+
+        // -----------------------------
+        // ADD
         // -----------------------------
         public void Add(Employee employee)
         {
@@ -55,11 +73,11 @@ namespace LeaveManager.Data.Repositories
 
             using var cmd = connection.CreateCommand();
             cmd.CommandText = @"
-        INSERT INTO Employees
-        (sicil_no, full_name, role, manager_id, is_active)
-        VALUES
-        (@sicil_no, @full_name, @role, @manager_id, 1);
-    ";
+                INSERT INTO Employees
+                (sicil_no, full_name, role, manager_id, is_active)
+                VALUES
+                (@sicil_no, @full_name, @role, @manager_id, 1);
+            ";
 
             cmd.Parameters.AddWithValue("@sicil_no", employee.SicilNo);
             cmd.Parameters.AddWithValue("@full_name", employee.FullName);
@@ -78,7 +96,7 @@ namespace LeaveManager.Data.Repositories
         }
 
         // -----------------------------
-        // UPDATE  (All Employee)
+        // UPDATE
         // -----------------------------
         public void Update(Employee employee)
         {
@@ -87,12 +105,12 @@ namespace LeaveManager.Data.Repositories
 
             using var cmd = connection.CreateCommand();
             cmd.CommandText = @"
-        UPDATE Employees
-        SET full_name = @full_name,
-            role = @role,
-            manager_id = @manager_id
-        WHERE id = @id;
-    ";
+                UPDATE Employees
+                SET full_name = @full_name,
+                    role = @role,
+                    manager_id = @manager_id
+                WHERE id = @id;
+            ";
 
             cmd.Parameters.AddWithValue("@id", employee.Id);
             cmd.Parameters.AddWithValue("@full_name", employee.FullName);
@@ -104,7 +122,7 @@ namespace LeaveManager.Data.Repositories
         }
 
         // -----------------------------
-        // DELETE (SOFT)
+        // SOFT DELETE
         // -----------------------------
         public void SoftDelete(int id)
         {
@@ -113,17 +131,17 @@ namespace LeaveManager.Data.Repositories
 
             using var cmd = connection.CreateCommand();
             cmd.CommandText = @"
-        UPDATE Employees
-        SET is_active = 0
-        WHERE id = @id;
-    ";
+                UPDATE Employees
+                SET is_active = 0
+                WHERE id = @id;
+            ";
 
             cmd.Parameters.AddWithValue("@id", id);
             cmd.ExecuteNonQuery();
         }
 
         // -----------------------------
-        // GET ASSISTANTS (Role = Assistant)
+        // GET ASSISTANTS
         // -----------------------------
         public List<Employee> GetAssistants()
         {
@@ -145,18 +163,26 @@ namespace LeaveManager.Data.Repositories
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                list.Add(new Employee
-                {
-                    Id = reader.GetInt32(0),
-                    SicilNo = reader.GetInt32(1),
-                    FullName = reader.GetString(2),
-                    Role = (EmployeeRole)reader.GetInt32(3),
-                    ManagerId = reader.IsDBNull(4) ? null : reader.GetInt32(4),
-                    IsActive = reader.GetInt32(5) == 1
-                });
+                list.Add(Map(reader));
             }
 
             return list;
+        }
+
+        // -----------------------------
+        //  PRIVATE MAP METHOD
+        // -----------------------------
+        private static Employee Map(SqliteDataReader reader)
+        {
+            return new Employee
+            {
+                Id = reader.GetInt32(0),
+                SicilNo = reader.GetInt32(1),
+                FullName = reader.GetString(2),
+                Role = (EmployeeRole)reader.GetInt32(3),
+                ManagerId = reader.IsDBNull(4) ? null : reader.GetInt32(4),
+                IsActive = reader.GetInt32(5) == 1
+            };
         }
     }
 }
