@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Yeni Personel"
         Width="460"
-        Height="520"
+        MinWidth="460"
+        SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="#F5F6F8">
@@ -16,7 +17,6 @@
         <SolidColorBrush x:Key="TextSecondary" Color="#6B7280"/>
         <SolidColorBrush x:Key="AccentBrush" Color="#2563EB"/>
 
-        <!-- Card -->
         <Style x:Key="CardStyle" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource CardBgBrush}"/>
             <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}"/>
@@ -25,7 +25,6 @@
             <Setter Property="Padding" Value="24"/>
         </Style>
 
-        <!-- Primary Button -->
         <Style x:Key="PrimaryButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
             <Setter Property="Foreground" Value="White"/>
@@ -38,95 +37,76 @@
     </Window.Resources>
 
     <Grid Margin="24">
-
         <Border Style="{StaticResource CardStyle}">
-            <StackPanel>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-                <!-- Header -->
-                <TextBlock Text="Yeni Personel Ekle"
-                           FontSize="22"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource TextPrimary}"
-                           HorizontalAlignment="Center"/>
+                <!-- FORM -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
 
-                <TextBlock Text="Personel bilgilerini girin"
-                           Margin="0,6,0,24"
-                           FontSize="13"
-                           Foreground="{StaticResource TextSecondary}"
-                           HorizontalAlignment="Center"/>
+                        <TextBlock Text="Yeni Personel Ekle"
+                               FontSize="22"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center"/>
 
-                <!-- Sicil -->
-                <TextBlock Text="Sicil No"
-                           FontSize="13"
-                           Foreground="{StaticResource TextSecondary}"/>
-
-                <TextBox x:Name="SicilTextBox"
-                         Height="40"
-                         Margin="0,6,0,16"
-                         Padding="10"/>
-
-                <!-- Ad Soyad -->
-                <TextBlock Text="Ad Soyad"
-                           FontSize="13"
-                           Foreground="{StaticResource TextSecondary}"/>
-
-                <TextBox x:Name="NameTextBox"
-                         Height="40"
-                         Margin="0,6,0,16"
-                         Padding="10"/>
-
-                <!-- Rol -->
-                <TextBlock Text="Rol"
-                           FontSize="13"
-                           Foreground="{StaticResource TextSecondary}"/>
-
-                <ComboBox x:Name="RoleComboBox"
-                          Height="40"
-                          Margin="0,6,0,16"
-                          SelectionChanged="RoleComboBox_SelectionChanged">
-                    <ComboBoxItem Content="Müdür Yardımcısı"/>
-                    <ComboBoxItem Content="Personel"/>
-
-                </ComboBox>
-
-                <!-- Bağlı Müdür Yardımcısı (Başta gizli) -->
-                <StackPanel x:Name="ManagerAssistantPanel"
-                            Visibility="Collapsed">
-
-                    <TextBlock Text="Bağlı Müdür Yardımcısı"
+                        <TextBlock Text="Personel bilgilerini girin"
+                               Margin="0,6,0,24"
                                FontSize="13"
-                               Foreground="{StaticResource TextSecondary}"/>
+                               HorizontalAlignment="Center"/>
 
-                    <ComboBox x:Name="ManagerAssistantComboBox"
+                        <TextBlock Text="Sicil No"/>
+                        <TextBox x:Name="SicilTextBox"
+                             Height="40"
+                             Margin="0,6,0,16"/>
+
+                        <TextBlock Text="Ad Soyad"/>
+                        <TextBox x:Name="NameTextBox"
+                             Height="40"
+                             Margin="0,6,0,16"/>
+
+                        <TextBlock Text="Rol"/>
+                        <ComboBox x:Name="RoleComboBox"
                               Height="40"
-                              Margin="0,6,0,16">
+                              Margin="0,6,0,16"
+                              SelectionChanged="RoleComboBox_SelectionChanged">
+                            <ComboBoxItem Content="Müdür Yardımcısı"/>
+                            <ComboBoxItem Content="Personel"/>
+                        </ComboBox>
 
-                        <!-- Şimdilik dummy data -->
-                        <ComboBoxItem Content="Ahmet Yılmaz"/>
-                        <ComboBoxItem Content="Mehmet Kaya"/>
+                        <StackPanel x:Name="ManagerAssistantPanel"
+                                Visibility="Collapsed">
 
-                    </ComboBox>
+                            <TextBlock Text="Bağlı Müdür Yardımcısı"/>
+                            <ComboBox x:Name="ManagerAssistantComboBox"
+                                  Height="40"
+                                  Margin="0,6,0,16"
+                                  DisplayMemberPath="FullName"/>
+                        </StackPanel>
 
-                </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
 
-                <!-- Buttons -->
-                <StackPanel Orientation="Horizontal"
-                            HorizontalAlignment="Right"
-                            Margin="0,20,0,0">
+                <!-- BUTTONS -->
+                <StackPanel Grid.Row="1"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="0,20,0,0">
 
                     <Button Content="İptal"
-                            Width="100"
-                            Click="Cancel_Click"/>
+                        Width="100"
+                        Margin="0,0,10,0"
+                        Click="Cancel_Click"/>
 
                     <Button Content="Kaydet"
-                            Width="120"
-                            Style="{StaticResource PrimaryButtonStyle}"
-                            Click="Save_Click"/>
-
+                        Width="120"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Click="Save_Click"/>
                 </StackPanel>
-
-            </StackPanel>
+            </Grid>
         </Border>
-
     </Grid>
 </Window>

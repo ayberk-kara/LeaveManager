@@ -117,18 +117,16 @@ namespace LeaveManager.App
 
         private void NewEmployee_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new AddEmployeeChoiceWindow();
-            dialog.Owner = this;
+            var dialog = new AddEmployeeWindow
+            {
+                Owner = this
+            };
 
             var result = dialog.ShowDialog();
 
             if (result == true)
             {
-                MessageBox.Show("Tekli ekleme ekranı açılacak.");
-            }
-            else if (result == false)
-            {
-                MessageBox.Show("Toplu ekleme ekranı açılacak.");
+                _vm.ReloadEmployeesFromDatabase();
             }
         }
     }
@@ -174,6 +172,11 @@ namespace LeaveManager.App
                     $"Sicil: {emp.SicilNo}"
                 ));
             }
+        }
+        public void ReloadEmployeesFromDatabase()
+        {
+            LoadEmployeesFromDatabase();
+            ApplyEmployeeFilter();
         }
 
         public DateTime BaseMonth
