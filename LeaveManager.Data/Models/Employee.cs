@@ -2,7 +2,6 @@
 {
     public enum EmployeeRole
     {
-        Manager = 0,
         Assistant = 1,
         Employee = 2
     }

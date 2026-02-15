@@ -84,8 +84,6 @@
                           Height="40"
                           Margin="0,6,0,16"
                           SelectionChanged="RoleComboBox_SelectionChanged">
-
-                    <ComboBoxItem Content="Müdür"/>
                     <ComboBoxItem Content="Müdür Yardımcısı"/>
                     <ComboBoxItem Content="Personel"/>
 

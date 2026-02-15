@@ -12,16 +12,13 @@ namespace LeaveManager.App
 
         private void RoleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (RoleComboBox.SelectedItem is ComboBoxItem item)
+            if (RoleComboBox.SelectedIndex == 1) // Personel
             {
-                if (item.Content.ToString() == "Personel")
-                {
-                    ManagerAssistantPanel.Visibility = Visibility.Visible;
-                }
-                else
-                {
-                    ManagerAssistantPanel.Visibility = Visibility.Collapsed;
-                }
+                ManagerAssistantPanel.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                ManagerAssistantPanel.Visibility = Visibility.Collapsed;
             }
         }
 
