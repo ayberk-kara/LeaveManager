@@ -10,19 +10,25 @@
     {
         public int Id { get; set; }
 
-        // unique personnel number, numeric only, never changes
+        /// <summary>
+        /// Unique personnel number. Numeric only. Immutable after creation.
+        /// </summary>
         public int SicilNo { get; set; }
 
         public string FullName { get; set; } = string.Empty;
 
         public EmployeeRole Role { get; set; }
 
-        // reporting hierarchy:
-        // assistant -> must report to manager
-        // employee -> must report to assistant
+        /// <summary>
+        /// Reporting hierarchy:
+        /// Assistant  -> must report to Manager
+        /// Employee   -> must report to Assistant
+        /// </summary>
         public int? ManagerId { get; set; }
 
-        // soft delete flag
+        /// <summary>
+        /// Soft delete flag.
+        /// </summary>
         public bool IsActive { get; set; } = true;
     }
 }

@@ -1,4 +1,7 @@
-﻿using System;
+﻿using LeaveManager.Data.Models;
+using LeaveManager.Data.Repositories;
+using LeaveManager.Models;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -7,8 +10,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
-using LeaveManager.Data.Models;
-using LeaveManager.Data.Repositories;
 
 namespace LeaveManager.App
 {
@@ -31,34 +32,32 @@ namespace LeaveManager.App
             if (_vm.SelectedEmployee == null)
                 return;
 
-            int sicilNo = ExtractSicilNo(_vm.SelectedEmployee.Subtitle);
-
             var dialog = new EditEmployeeWindow(
                 _vm.SelectedEmployee.FullName,
-                sicilNo)
+                _vm.SelectedEmployee.SicilNo,
+                _vm.SelectedEmployee.Role)
             {
                 Owner = this
             };
 
             if (dialog.ShowDialog() == true)
             {
-                _vm.UpdateEmployee(
-                    _vm.SelectedEmployee.Id,
-                    dialog.UpdatedName,
-                    dialog.UpdatedSicilNo);
+                if (dialog.IsDeleteRequested)
+                {
+                    _vm.DeleteEmployee(_vm.SelectedEmployee.Id);
+                }
+                else
+                {
+                    _vm.UpdateEmployee(
+                        _vm.SelectedEmployee.Id,
+                        dialog.UpdatedName,
+                        dialog.UpdatedSicilNo,
+                        dialog.UpdatedRole);
+                }
             }
         }
 
-        private int ExtractSicilNo(string subtitle)
-        {
-            // Format: "Sicil: 1234"
-            var parts = subtitle.Split(':');
-            if (parts.Length != 2)
-                return 0;
-
-            return int.TryParse(parts[1].Trim(), out var no) ? no : 0;
-        }
-
+        // -------- Calendar logic aynı --------
 
         private static DateTime NormalizeToMonthStart(DateTime anyDate)
             => new DateTime(anyDate.Year, anyDate.Month, 1);
@@ -108,12 +107,7 @@ namespace LeaveManager.App
         {
             if (_vm.SelectedEmployee == null)
             {
-                MessageBox.Show(
-                    "Önce soldan bir personel seçin.",
-                    "Personel seçimi gerekli",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-
+                MessageBox.Show("Önce soldan bir personel seçin.");
                 return;
             }
 
@@ -122,12 +116,10 @@ namespace LeaveManager.App
                 Owner = this
             };
 
-            var ok = dlg.ShowDialog();
-            if (ok != true)
+            if (dlg.ShowDialog() != true)
                 return;
 
             _vm.ReloadSelectedEmployeeLeavesFromDatabase();
-
             _vm.BaseMonth = NormalizeToMonthStart(dlg.StartDate);
             SetCalendarsToBaseMonth(_vm.BaseMonth);
         }
@@ -156,63 +148,28 @@ namespace LeaveManager.App
                 Owner = this
             };
 
-            var result = dialog.ShowDialog();
-
-            if (result == true)
-            {
+            if (dialog.ShowDialog() == true)
                 _vm.ReloadEmployeesFromDatabase();
-            }
         }
     }
 
-    // ----------- VIEW MODEL --------------
+    // ================= VIEW MODEL =================
+
     public sealed class MainViewModel : INotifyPropertyChanged
     {
         private readonly LeaveRepository _leaveRepository = new();
         private readonly EmployeeRepository _employeeRepository = new();
 
-        private string _searchText = string.Empty;
         private EmployeeItem? _selectedEmployee;
         private DateTime _baseMonth = DateTime.Today;
-        private DateTime _selectedDay = DateTime.Today;
-
-        private HashSet<DateTime> _selectedEmployeeLeaveDays = new();
-        private List<Leave> _selectedEmployeeLeaves = new();
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public ObservableCollection<EmployeeItem> AllEmployees { get; } = new();
         public ObservableCollection<EmployeeItem> Employees { get; } = new();
-        public ObservableCollection<LeaveListItem> SelectedDayLeaves { get; } = new();
-
 
         public MainViewModel()
         {
-            LoadEmployeesFromDatabase();
-            ApplyEmployeeFilter();
-            SetSelectedDay(DateTime.Today);
-            UpdateHeaderHint();
-        }
-
-        private void LoadEmployeesFromDatabase()
-        {
-            AllEmployees.Clear();
-
-            var employees = _employeeRepository.GetAllActive();
-
-            foreach (var emp in employees)
-            {
-                AllEmployees.Add(new EmployeeItem(
-                    emp.Id,
-                    emp.FullName,
-                    $"Sicil: {emp.SicilNo}"
-                ));
-            }
-        }
-        public void ReloadEmployeesFromDatabase()
-        {
-            LoadEmployeesFromDatabase();
-            ApplyEmployeeFilter();
+            ReloadEmployeesFromDatabase();
         }
 
         public DateTime BaseMonth
@@ -220,22 +177,8 @@ namespace LeaveManager.App
             get => _baseMonth;
             set
             {
-                if (_baseMonth == value) return;
                 _baseMonth = value;
                 OnPropertyChanged();
-            }
-        }
-
-
-        public string SearchText
-        {
-            get => _searchText;
-            set
-            {
-                if (_searchText == value) return;
-                _searchText = value ?? string.Empty;
-                OnPropertyChanged();
-                ApplyEmployeeFilter();
             }
         }
 
@@ -244,181 +187,66 @@ namespace LeaveManager.App
             get => _selectedEmployee;
             set
             {
-                if (_selectedEmployee == value) return;
                 _selectedEmployee = value;
                 OnPropertyChanged();
-
-                ReloadSelectedEmployeeLeavesFromDatabase();
-                UpdateHeaderHint();
             }
         }
 
-        public HashSet<DateTime> SelectedEmployeeLeaveDays
-        {
-            get => _selectedEmployeeLeaveDays;
-            private set
-            {
-                _selectedEmployeeLeaveDays = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public string HeaderHintText =>
-            SelectedEmployee == null
-                ? "Lütfen soldan bir personel seçin."
-                : $"{SelectedEmployee.FullName} seçili.";
-
-        public string SelectedDayTitle
-        {
-            get
-            {
-                var tr = new CultureInfo("tr-TR");
-                return $"{_selectedDay.ToString("dd MMMM yyyy", tr)} — İzinler";
-            }
-        }
-
-        public string SelectedDayEmptyHint =>
-            SelectedEmployee == null
-                ? "İzinleri görmek için önce personel seçin."
-                : "Bu gün için kayıtlı izin yok.";
-
-        public Visibility IsSelectedDayEmptyHintVisible =>
-            SelectedDayLeaves.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
-
-        public void SetSelectedDay(DateTime day)
-        {
-            _selectedDay = day.Date;
-            OnPropertyChanged(nameof(SelectedDayTitle));
-            RefreshSelectedDayLeaves();
-        }
-
-        public void ReloadSelectedEmployeeLeavesFromDatabase()
-        {
-            if (SelectedEmployee == null)
-            {
-                _selectedEmployeeLeaves = new List<Leave>();
-                SelectedEmployeeLeaveDays = new HashSet<DateTime>();
-                RefreshSelectedDayLeaves();
-                return;
-            }
-
-            _selectedEmployeeLeaves = _leaveRepository.GetByEmployee(SelectedEmployee.Id);
-
-            UpdateSelectedEmployeeLeaveDays();
-            RefreshSelectedDayLeaves();
-
-            OnPropertyChanged(nameof(IsSelectedDayEmptyHintVisible));
-            OnPropertyChanged(nameof(SelectedDayEmptyHint));
-        }
-
-
-
-        private void RefreshSelectedDayLeaves()
-        {
-            SelectedDayLeaves.Clear();
-
-            if (SelectedEmployee == null)
-            {
-                OnPropertyChanged(nameof(IsSelectedDayEmptyHintVisible));
-                return;
-            }
-
-            var leaves = _selectedEmployeeLeaves
-                .Where(l => IncludesDay(l.StartDate, l.EndDate, _selectedDay))
-                .OrderBy(l => l.StartDate)
-                .ToList();
-
-            foreach (var leave in leaves)
-            {
-                SelectedDayLeaves.Add(new LeaveListItem
-                {
-                    Title = $"{leave.Type} İzni",
-                    Subtitle = $"{leave.StartDate:dd.MM.yyyy} - {leave.EndDate:dd.MM.yyyy}"
-                });
-            }
-
-            OnPropertyChanged(nameof(IsSelectedDayEmptyHintVisible));
-        }
-
-        private void UpdateSelectedEmployeeLeaveDays()
-        {
-            if (SelectedEmployee == null)
-            {
-                SelectedEmployeeLeaveDays = new HashSet<DateTime>();
-                return;
-            }
-
-            var days = new HashSet<DateTime>();
-
-            foreach (var leave in _selectedEmployeeLeaves)
-            {
-                var d = leave.StartDate.Date;
-                var end = leave.EndDate.Date;
-
-                while (d <= end)
-                {
-                    days.Add(d);
-                    d = d.AddDays(1);
-                }
-            }
-
-            SelectedEmployeeLeaveDays = days;
-        }
-
-        private static bool IncludesDay(DateTime start, DateTime end, DateTime day)
-        {
-            var d = day.Date;
-            return d >= start.Date && d <= end.Date;
-        }
-
-        private void UpdateHeaderHint() => OnPropertyChanged(nameof(HeaderHintText));
-
-        private void ApplyEmployeeFilter()
+        public void ReloadEmployeesFromDatabase()
         {
             Employees.Clear();
 
-            var query = (SearchText ?? string.Empty).Trim();
-            IEnumerable<EmployeeItem> result = AllEmployees;
+            var employees = _employeeRepository.GetAllActive();
 
-            if (!string.IsNullOrWhiteSpace(query))
+            foreach (var emp in employees)
             {
-                result = result.Where(e =>
-                    e.FullName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                    e.Subtitle.Contains(query, StringComparison.OrdinalIgnoreCase));
+                Employees.Add(new EmployeeItem(
+                    emp.Id,
+                    emp.FullName,
+                    emp.SicilNo,
+                    emp.Role));
             }
-
-            foreach (var emp in result)
-                Employees.Add(emp);
         }
 
-        private void OnPropertyChanged([CallerMemberName] string? name = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-
-
-        public void UpdateEmployee(int id, string fullName, int sicilNo)
+        public void UpdateEmployee(int id, string fullName, int sicilNo, EmployeeRole role)
         {
-            var employees = _employeeRepository.GetAllActive();
-            var employee = employees.FirstOrDefault(e => e.Id == id);
-
-            if (employee == null)
-                return;
+            var employee = _employeeRepository.GetById(id);
+            if (employee == null) return;
 
             employee.FullName = fullName;
             employee.SicilNo = sicilNo;
+            employee.Role = role;
 
             _employeeRepository.Update(employee);
 
             ReloadEmployeesFromDatabase();
         }
+
+        public void DeleteEmployee(int id)
+        {
+            var employee = _employeeRepository.GetById(id);
+            if (employee == null) return;
+
+            employee.IsActive = false;   // soft delete
+            _employeeRepository.Update(employee);
+
+            ReloadEmployeesFromDatabase();
+        }
+
+        private void OnPropertyChanged([CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
-
+    // ================= EMPLOYEE ITEM =================
 
     public sealed class EmployeeItem
     {
         public int Id { get; }
         public string FullName { get; }
-        public string Subtitle { get; }
+        public int SicilNo { get; }
+        public EmployeeRole Role { get; }
+
+        public string Subtitle => $"Sicil: {SicilNo}";
 
         public string Initials
         {
@@ -431,17 +259,12 @@ namespace LeaveManager.App
             }
         }
 
-        public EmployeeItem(int id, string fullName, string subtitle)
+        public EmployeeItem(int id, string fullName, int sicilNo, EmployeeRole role)
         {
             Id = id;
             FullName = fullName;
-            Subtitle = subtitle;
+            SicilNo = sicilNo;
+            Role = role;
         }
-    }
-
-    public sealed class LeaveListItem
-    {
-        public string Title { get; set; } = string.Empty;
-        public string Subtitle { get; set; } = string.Empty;
     }
 }
