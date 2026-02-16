@@ -24,10 +24,9 @@ namespace LeaveManager.App
     }
 
     // ================= 1 =================
-    // End date must be >= Start date
     public class DateRangeRule : LeaveRule
     {
-        public DateRangeRule() : base("Invalid Date Range") { }
+        public DateRangeRule() : base("Geçersiz Tarih Aralığı") { }
 
         public override bool Validate(Employee employee,
             IEnumerable<Employee> allEmployees,
@@ -37,7 +36,7 @@ namespace LeaveManager.App
         {
             if (newLeave.EndDate < newLeave.StartDate)
             {
-                reason = "Leave end date must be greater than or equal to start date.";
+                reason = "İzin bitiş tarihi, başlangıç tarihinden küçük olamaz.";
                 return false;
             }
 
@@ -47,10 +46,9 @@ namespace LeaveManager.App
     }
 
     // ================= 2 =================
-    // Leave cannot start in the past
     public class NoPastStartRule : LeaveRule
     {
-        public NoPastStartRule() : base("No Past Start Rule") { }
+        public NoPastStartRule() : base("Geçmiş Tarihte İzin Başlatılamaz") { }
 
         public override bool Validate(Employee employee,
             IEnumerable<Employee> allEmployees,
@@ -60,7 +58,7 @@ namespace LeaveManager.App
         {
             if (newLeave.StartDate.Date < DateTime.Today)
             {
-                reason = "Leave cannot start in the past.";
+                reason = "İzin başlangıç tarihi bugünden önce olamaz.";
                 return false;
             }
 
@@ -70,10 +68,9 @@ namespace LeaveManager.App
     }
 
     // ================= 3 =================
-    // Maximum 10 consecutive days
     public class MaxConsecutiveDaysRule : LeaveRule
     {
-        public MaxConsecutiveDaysRule() : base("Maximum Consecutive Leave Rule") { }
+        public MaxConsecutiveDaysRule() : base("Maksimum Ardışık Gün Kuralı") { }
 
         public override bool Validate(Employee employee,
             IEnumerable<Employee> allEmployees,
@@ -85,7 +82,7 @@ namespace LeaveManager.App
 
             if (duration > 10)
             {
-                reason = "Maximum consecutive leave duration is 10 days.";
+                reason = "Bir izin en fazla 10 gün ardışık olabilir.";
                 return false;
             }
 
@@ -95,10 +92,9 @@ namespace LeaveManager.App
     }
 
     // ================= 4 =================
-    // Overlap rule
     public class NoOverlapRule : LeaveRule
     {
-        public NoOverlapRule() : base("No Overlapping Leave Rule") { }
+        public NoOverlapRule() : base("Çakışan İzin Kuralı") { }
 
         public override bool Validate(Employee employee,
             IEnumerable<Employee> allEmployees,
@@ -110,7 +106,7 @@ namespace LeaveManager.App
                 newLeave.StartDate <= l.EndDate &&
                 newLeave.EndDate >= l.StartDate))
             {
-                reason = "Leave dates overlap with an existing leave.";
+                reason = "Bu izin, mevcut başka bir izinle tarih çakışması içeriyor.";
                 return false;
             }
 
@@ -120,10 +116,9 @@ namespace LeaveManager.App
     }
 
     // ================= 5 =================
-    // Only one leave per same start date
     public class OneLeavePerDayRule : LeaveRule
     {
-        public OneLeavePerDayRule() : base("Single Leave Per Start Date Rule") { }
+        public OneLeavePerDayRule() : base("Aynı Gün Tek İzin Kuralı") { }
 
         public override bool Validate(Employee employee,
             IEnumerable<Employee> allEmployees,
@@ -133,7 +128,7 @@ namespace LeaveManager.App
         {
             if (existingLeaves.Any(l => l.StartDate.Date == newLeave.StartDate.Date))
             {
-                reason = "Only one leave request per start date is allowed.";
+                reason = "Aynı başlangıç tarihi için birden fazla izin girilemez.";
                 return false;
             }
 
@@ -143,10 +138,9 @@ namespace LeaveManager.App
     }
 
     // ================= 6 =================
-    // Sick leave <= 40 per year
     public class SickLeaveLimitRule : LeaveRule
     {
-        public SickLeaveLimitRule() : base("Sick Leave Yearly Limit Rule") { }
+        public SickLeaveLimitRule() : base("Yıllık Rapor İzni Limit Kuralı") { }
 
         public override bool Validate(Employee employee,
             IEnumerable<Employee> allEmployees,
@@ -170,7 +164,7 @@ namespace LeaveManager.App
 
             if (total > 40)
             {
-                reason = "Sick leave cannot exceed 40 days per calendar year.";
+                reason = "Bir takvim yılı içinde toplam raporlu izin süresi 40 günü aşamaz.";
                 return false;
             }
 
@@ -180,10 +174,9 @@ namespace LeaveManager.App
     }
 
     // ================= 7 =================
-    // Annual leave <= 30 per year
     public class AnnualLeaveLimitRule : LeaveRule
     {
-        public AnnualLeaveLimitRule() : base("Annual Leave Yearly Limit Rule") { }
+        public AnnualLeaveLimitRule() : base("Yıllık İzin Limit Kuralı") { }
 
         public override bool Validate(Employee employee,
             IEnumerable<Employee> allEmployees,
@@ -207,7 +200,7 @@ namespace LeaveManager.App
 
             if (total > 30)
             {
-                reason = "Annual leave cannot exceed 30 days per calendar year.";
+                reason = "Bir takvim yılı içinde toplam yıllık izin süresi 30 günü aşamaz.";
                 return false;
             }
 
@@ -217,10 +210,9 @@ namespace LeaveManager.App
     }
 
     // ================= 8 =================
-    // Same assistant cannot have overlapping annual leaves
     public class AssistantConflictRule : LeaveRule
     {
-        public AssistantConflictRule() : base("Assistant Conflict Rule") { }
+        public AssistantConflictRule() : base("Aynı Müdür Yardımcısı Çakışma Kuralı") { }
 
         public override bool Validate(Employee employee,
             IEnumerable<Employee> allEmployees,
@@ -244,7 +236,7 @@ namespace LeaveManager.App
                     if (newLeave.StartDate <= leave.EndDate &&
                         newLeave.EndDate >= leave.StartDate)
                     {
-                        reason = "Two employees under the same assistant manager cannot take annual leave at the same time.";
+                        reason = "Aynı müdür yardımcısına bağlı iki çalışan aynı tarihlerde yıllık izin kullanamaz.";
                         return false;
                     }
                 }
@@ -254,8 +246,6 @@ namespace LeaveManager.App
             return true;
         }
     }
-
-    // ================= RULE MANAGER =================
 
     public static class LeaveRules
     {
