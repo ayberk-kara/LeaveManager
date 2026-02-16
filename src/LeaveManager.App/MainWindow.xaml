@@ -10,7 +10,8 @@
         Width="1280"
         Height="760"
         WindowStartupLocation="CenterScreen"
-        Background="#F5F6F8">
+        Background="#F5F6F8"
+        Icon="Assets/logo.ico">
 
     <Window.Resources>
 

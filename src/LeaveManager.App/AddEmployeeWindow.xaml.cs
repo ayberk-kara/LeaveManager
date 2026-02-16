@@ -40,7 +40,7 @@ namespace LeaveManager.App
         {
             try
             {
-                // --- Validasyon ---
+               
                 if (!int.TryParse(SicilTextBox.Text.Trim(), out int sicilNo))
                     throw new Exception("Sicil numarası geçersiz.");
 
@@ -65,7 +65,7 @@ namespace LeaveManager.App
                     managerId = assistant.Id;
                 }
 
-                // --- Soft delete restore veya yeni ekleme ---
+                
                 var restoredOrNew = _repository.RestoreOrCreate(
                     sicilNo,
                     fullName,
