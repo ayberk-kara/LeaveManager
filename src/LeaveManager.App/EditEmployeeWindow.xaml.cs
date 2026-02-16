@@ -58,7 +58,7 @@ namespace LeaveManager.App
             UpdatedName = txtName.Text.Trim();
             UpdatedSicilNo = sicilNo;
 
-            // Rolu enum olarak geri çevir
+           
             foreach (var kv in _roleMap)
             {
                 if (kv.Value == cmbRole.SelectedItem.ToString())

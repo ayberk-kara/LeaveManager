@@ -184,5 +184,98 @@ namespace LeaveManager.Data.Repositories
                 IsActive = reader.GetInt32(5) == 1
             };
         }
+
+        // -----------------------------
+        //  RESTORE DELETED METHOD
+        // -----------------------------
+        public (Employee employee, bool WasRestored) RestoreOrCreate(int sicilNo, string fullName, EmployeeRole role, int? managerId = null)
+        {
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            // Check if employee exists
+            using var checkCmd = connection.CreateCommand();
+            checkCmd.CommandText = @"
+        SELECT id, full_name, role, manager_id, is_active
+        FROM Employees
+        WHERE sicil_no = @sicil_no;
+    ";
+            checkCmd.Parameters.AddWithValue("@sicil_no", sicilNo);
+
+            using var reader = checkCmd.ExecuteReader();
+
+            if (reader.Read())
+            {
+                int id = reader.GetInt32(0);
+                bool isActive = reader.GetInt32(4) == 1;
+
+                if (!isActive)
+                {
+                    // Restore
+                    reader.Close();
+                    using var restoreCmd = connection.CreateCommand();
+                    restoreCmd.CommandText = @"
+                UPDATE Employees
+                SET full_name = @full_name,
+                    role = @role,
+                    manager_id = @manager_id,
+                    is_active = 1
+                WHERE id = @id;
+            ";
+                    restoreCmd.Parameters.AddWithValue("@full_name", fullName);
+                    restoreCmd.Parameters.AddWithValue("@role", (int)role);
+                    restoreCmd.Parameters.AddWithValue("@manager_id", managerId.HasValue ? managerId : DBNull.Value);
+                    restoreCmd.Parameters.AddWithValue("@id", id);
+                    restoreCmd.ExecuteNonQuery();
+
+                    var restoredEmployee = new Employee
+                    {
+                        Id = id,
+                        SicilNo = sicilNo,
+                        FullName = fullName,
+                        Role = role,
+                        ManagerId = managerId,
+                        IsActive = true
+                    };
+
+                    return (restoredEmployee, true);
+                }
+                else
+                {
+                    throw new InvalidOperationException("Bu sicil numarası zaten kayıtlı.");
+                }
+            }
+
+            // Insert new employee
+            reader.Close();
+            using var insertCmd = connection.CreateCommand();
+            insertCmd.CommandText = @"
+        INSERT INTO Employees (sicil_no, full_name, role, manager_id, is_active)
+        VALUES (@sicil_no, @full_name, @role, @manager_id, 1);
+    ";
+            insertCmd.Parameters.AddWithValue("@sicil_no", sicilNo);
+            insertCmd.Parameters.AddWithValue("@full_name", fullName);
+            insertCmd.Parameters.AddWithValue("@role", (int)role);
+            insertCmd.Parameters.AddWithValue("@manager_id", managerId.HasValue ? managerId : DBNull.Value);
+            insertCmd.ExecuteNonQuery();
+
+            // Get last inserted id
+            using var lastIdCmd = connection.CreateCommand();
+            lastIdCmd.CommandText = "SELECT last_insert_rowid();";
+            long newId = (long)lastIdCmd.ExecuteScalar();
+
+            var newEmployee = new Employee
+            {
+                Id = (int)newId,
+                SicilNo = sicilNo,
+                FullName = fullName,
+                Role = role,
+                ManagerId = managerId,
+                IsActive = true
+            };
+
+            return (newEmployee, false);
+        }
     }
 }
+    

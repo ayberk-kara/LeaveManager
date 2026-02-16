@@ -40,6 +40,7 @@ namespace LeaveManager.App
         {
             try
             {
+                // --- Validasyon ---
                 if (!int.TryParse(SicilTextBox.Text.Trim(), out int sicilNo))
                     throw new Exception("Sicil numarası geçersiz.");
 
@@ -64,15 +65,22 @@ namespace LeaveManager.App
                     managerId = assistant.Id;
                 }
 
-                var employee = new Employee
-                {
-                    SicilNo = sicilNo,
-                    FullName = fullName,
-                    Role = role,
-                    ManagerId = managerId
-                };
+                // --- Soft delete restore veya yeni ekleme ---
+                var restoredOrNew = _repository.RestoreOrCreate(
+                    sicilNo,
+                    fullName,
+                    role,
+                    managerId
+                );
 
-                _repository.Add(employee);
+                if (restoredOrNew.WasRestored)
+                {
+                    MessageBox.Show(
+                        $"Bu çalışan daha önce silinmişti. Kaydı geri getirildi.",
+                        "Bilgi",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
 
                 DialogResult = true;
                 Close();
