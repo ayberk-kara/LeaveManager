@@ -175,7 +175,7 @@
                     <ComboBox x:Name="LeaveTypeCombo"
                               Margin="0,6,0,0"
                               Style="{StaticResource SmoothComboBoxStyle}"
-                              SelectedIndex="0">
+                              SelectedIndex="0" Height="24">
                         <ComboBoxItem Content="Yıllık"/>
                         <ComboBoxItem Content="Rapor"/>
                         <ComboBoxItem Content="Ücretsiz"/>
