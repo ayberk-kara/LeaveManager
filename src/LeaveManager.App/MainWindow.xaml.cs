@@ -35,7 +35,8 @@ namespace LeaveManager.App
             var dialog = new EditEmployeeWindow(
                 _vm.SelectedEmployee.FullName,
                 _vm.SelectedEmployee.SicilNo,
-                _vm.SelectedEmployee.Role)
+                _vm.SelectedEmployee.Role,
+                _vm.SelectedEmployee.ManagerId) 
             {
                 Owner = this
             };
@@ -52,7 +53,8 @@ namespace LeaveManager.App
                         _vm.SelectedEmployee.Id,
                         dialog.UpdatedName,
                         dialog.UpdatedSicilNo,
-                        dialog.UpdatedRole);
+                        dialog.UpdatedRole,
+                        dialog.UpdatedManagerId); 
                 }
             }
         }
@@ -241,11 +243,12 @@ namespace LeaveManager.App
                     emp.Id,
                     emp.FullName,
                     emp.SicilNo,
-                    emp.Role));
+                    emp.Role,
+                    emp.ManagerId));
             }
         }
 
-        public void UpdateEmployee(int id, string fullName, int sicilNo, EmployeeRole role)
+        public void UpdateEmployee(int id, string fullName, int sicilNo, EmployeeRole role, int? managerId)
         {
             var employee = _employeeRepository.GetById(id);
             if (employee == null) return;
@@ -253,6 +256,7 @@ namespace LeaveManager.App
             employee.FullName = fullName;
             employee.SicilNo = sicilNo;
             employee.Role = role;
+            employee.ManagerId = managerId;
 
             _employeeRepository.Update(employee);
 
@@ -277,6 +281,7 @@ namespace LeaveManager.App
         public string FullName { get; }
         public int SicilNo { get; }
         public EmployeeRole Role { get; }
+        public int? ManagerId { get; } // <-- ekledik
 
         public string Subtitle => $"Sicil: {SicilNo}";
 
@@ -291,12 +296,13 @@ namespace LeaveManager.App
             }
         }
 
-        public EmployeeItem(int id, string fullName, int sicilNo, EmployeeRole role)
+        public EmployeeItem(int id, string fullName, int sicilNo, EmployeeRole role, int? managerId)
         {
             Id = id;
             FullName = fullName;
             SicilNo = sicilNo;
             Role = role;
+            ManagerId = managerId; // <-- set
         }
     }
 
