@@ -247,6 +247,56 @@ namespace LeaveManager.App
         }
     }
 
+
+    public class LongLeaveGapRule : LeaveRule
+    {
+        public LongLeaveGapRule() : base("Uzun İzinler Arası 3 Ay Kuralı") { }
+
+        public override bool Validate(
+            Employee employee,
+            IEnumerable<Employee> allEmployees,
+            IEnumerable<Leave> existingLeaves,
+            Leave newLeave,
+            out string reason)
+        {
+            int newDuration = (newLeave.EndDate - newLeave.StartDate).Days + 1;
+
+            foreach (var leave in existingLeaves)
+            {
+                int existingDuration = (leave.EndDate - leave.StartDate).Days + 1;
+
+                // only applies to leaves longer than 5 days
+                if (newDuration > 5 || existingDuration > 5)
+                {
+                    int gap;
+
+                    if (newLeave.StartDate > leave.EndDate)
+                    {
+                        gap = (newLeave.StartDate - leave.EndDate).Days;
+                    }
+                    else if (leave.StartDate > newLeave.EndDate)
+                    {
+                        gap = (leave.StartDate - newLeave.EndDate).Days;
+                    }
+                    else
+                    {
+                        
+                        continue;
+                    }
+
+                    if (gap < 90)
+                    {
+                        reason = "5 günden uzun izinler arasında en az 3 ay (90 gün) olmalıdır.";
+                        return false;
+                    }
+                }
+            }
+
+            reason = string.Empty;
+            return true;
+        }
+    }
+
     public static class LeaveRules
     {
         private static readonly List<LeaveRule> _rules = new()
