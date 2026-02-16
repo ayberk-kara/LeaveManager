@@ -1,4 +1,8 @@
-﻿namespace LeaveManager.Models
+﻿using LeaveManager.Data.Models;
+using System;
+using System.Collections.Generic;
+
+namespace LeaveManager.Models
 {
     public enum EmployeeRole
     {
@@ -10,25 +14,28 @@
     {
         public int Id { get; set; }
 
-        /// <summary>
-        /// Unique personnel number. Numeric only. Immutable after creation.
-        /// </summary>
         public int SicilNo { get; set; }
 
         public string FullName { get; set; } = string.Empty;
 
         public EmployeeRole Role { get; set; }
 
-        /// <summary>
-        /// Reporting hierarchy:
-        /// Assistant  -> must report to Manager
-        /// Employee   -> must report to Assistant
-        /// </summary>
         public int? ManagerId { get; set; }
 
-        /// <summary>
-        /// Soft delete flag.
-        /// </summary>
         public bool IsActive { get; set; } = true;
+
+        // ---- Leave Tracking ----
+
+        // Current total annual leave balance (after carry + usage)
+        public int AnnualLeaveBalance { get; set; }
+
+        // Year -> Remaining leave from that specific year (2-year expiration logic)
+        public Dictionary<int, int> YearlyLeaveBuckets { get; set; } = new();
+
+        // Sick leave used in current calendar year (max 40 rule)
+        public int CurrentYearSickLeaveUsed { get; set; }
+
+        // Navigation for all leaves (for overlap & yearly calculations)
+        public ICollection<Leave> Leaves { get; set; } = new List<Leave>();
     }
 }
