@@ -20,7 +20,7 @@ namespace LeaveManager.App.Services   // new namespace
             {
                 new DateRangeRule(),
                 new NoPastStartRule(),
-                new MaxConsecutiveDaysRule(),
+                //new MaxConsecutiveDaysRule(),
                 new NoOverlapRule(),
                 new LongLeaveGapRule(),
                 new AnnualLeaveLimitRule(),
