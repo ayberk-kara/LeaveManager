@@ -305,7 +305,7 @@ namespace LeaveManager.App
         {
             new DateRangeRule(),
             new NoPastStartRule(),
-            new MaxConsecutiveDaysRule(),
+            //new MaxConsecutiveDaysRule(),
             new NoOverlapRule(),
             new LongLeaveGapRule(),
             new OneLeavePerDayRule(),
