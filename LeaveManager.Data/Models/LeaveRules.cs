@@ -68,6 +68,7 @@ namespace LeaveManager.App
     }
 
     // ================= 3 =================
+    /*
     public class MaxConsecutiveDaysRule : LeaveRule
     {
         public MaxConsecutiveDaysRule() : base("Maksimum Ardışık Gün Kuralı") { }
@@ -90,7 +91,7 @@ namespace LeaveManager.App
             return true;
         }
     }
-
+    */
     // ================= 4 =================
     public class NoOverlapRule : LeaveRule
     {

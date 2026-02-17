@@ -13,7 +13,8 @@ namespace LeaveManager.Data
 
             var migrations = new IMigration[]
             {
-                new Migration_001_Init()
+                new Migration_001_Init(),
+                new Migration_002_AddDaysColumn(),
             };
 
             foreach (var migration in migrations.OrderBy(m => m.Version))
