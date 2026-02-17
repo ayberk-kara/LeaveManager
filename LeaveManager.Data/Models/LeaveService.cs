@@ -47,6 +47,7 @@ namespace LeaveManager.App.Services
                 if (employee is null)
                 {
                     errorMessage = "Çalışan bulunamadı.";
+                    tx.Rollback(); 
                     return false;
                 }
 
@@ -58,7 +59,10 @@ namespace LeaveManager.App.Services
                 foreach (var rule in _rules)
                 {
                     if (!rule.Validate(employee, allEmployees, existingLeaves, newLeave, out errorMessage))
+                    {
+                        tx.Rollback(); 
                         return false;
+                    }
                 }
 
                 var splitLeaves = SplitLeaveByYear(newLeave);
@@ -68,7 +72,7 @@ namespace LeaveManager.App.Services
                     EnsureBalanceExists(connection, tx, leavePart.EmployeeId, leavePart.Year);
 
                     var balance = _balanceRepository
-    .GetByEmployeeAndYear(connection, leavePart.EmployeeId, leavePart.Year);
+                        .GetByEmployeeAndYear(connection, leavePart.EmployeeId, leavePart.Year);
 
                     if (balance == null)
                         throw new Exception("Balance bulunamadı.");
@@ -82,8 +86,8 @@ namespace LeaveManager.App.Services
 
                         if (leavePart.Days > remaining)
                         {
-                            tx.Rollback();
                             errorMessage = $"Yetersiz yıllık izin bakiyesi. Kalan: {remaining}";
+                            tx.Rollback(); 
                             return false;
                         }
                     }
@@ -97,12 +101,12 @@ namespace LeaveManager.App.Services
                         if (leavePart.Days > remaining)
                         {
                             errorMessage = $"Yetersiz hastalık izni bakiyesi. Kalan: {remaining}";
+                            tx.Rollback(); 
                             return false;
                         }
                     }
 
                     _leaveRepository.Add(connection, tx, leavePart);
-
                     UpdateBalanceUsage(connection, tx, leavePart);
                 }
 
@@ -112,7 +116,7 @@ namespace LeaveManager.App.Services
             }
             catch (Exception ex)
             {
-                tx.Rollback();
+                tx.Rollback(); 
                 errorMessage = ex.Message;
                 return false;
             }
