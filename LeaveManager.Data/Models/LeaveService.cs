@@ -3,24 +3,25 @@ using LeaveManager.Data.Repositories;
 using System;
 using System.Collections.Generic;
 
-namespace LeaveManager.App.Services   // new namespace
+namespace LeaveManager.App.Services
 {
     public class LeaveService
     {
         private readonly LeaveRepository _leaveRepository;
         private readonly EmployeeRepository _employeeRepository;
+        private readonly LeaveBalanceRepository _balanceRepository;   
         private readonly List<LeaveRule> _rules;
 
         public LeaveService()
         {
             _leaveRepository = new LeaveRepository();
             _employeeRepository = new EmployeeRepository();
+            _balanceRepository = new LeaveBalanceRepository(); 
 
             _rules = new List<LeaveRule>
             {
                 new DateRangeRule(),
                 new NoPastStartRule(),
-                //new MaxConsecutiveDaysRule(),
                 new NoOverlapRule(),
                 new LongLeaveGapRule(),
                 new AnnualLeaveLimitRule(),
@@ -47,7 +48,7 @@ namespace LeaveManager.App.Services   // new namespace
                     return false;
             }
 
-            // Cross-year split
+            // 🔥 Cross-year split
             var splitLeaves = SplitLeaveByYear(newLeave);
 
             foreach (var leavePart in splitLeaves)
@@ -76,7 +77,6 @@ namespace LeaveManager.App.Services   // new namespace
             while (currentStart.Year < end.Year)
             {
                 var yearEnd = new DateTime(currentStart.Year, 12, 31);
-
                 var days = (yearEnd - currentStart).Days + 1;
 
                 result.Add(new Leave
@@ -93,7 +93,7 @@ namespace LeaveManager.App.Services   // new namespace
                 currentStart = yearEnd.AddDays(1);
             }
 
-            // Last segment
+            // Son parça
             var finalDays = (end - currentStart).Days + 1;
 
             result.Add(new Leave
@@ -146,7 +146,7 @@ namespace LeaveManager.App.Services   // new namespace
                 SickManualAdjust = 0
             });
 
-            // 2 yıl önceki bakiyeyi sil
+            // retention policy
             _balanceRepository.Delete(employeeId, year - 2);
         }
 
@@ -156,6 +156,9 @@ namespace LeaveManager.App.Services   // new namespace
         private void UpdateBalanceUsage(Leave leave)
         {
             var balance = _balanceRepository.GetByEmployeeAndYear(leave.EmployeeId, leave.Year);
+
+            if (balance == null)
+                throw new Exception("Balance bulunamadı.");
 
             if (leave.Type == "Annual")
                 balance.AnnualUsed += leave.Days;
