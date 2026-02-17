@@ -2,33 +2,31 @@
 using System.Windows;
 using System.Windows.Controls;
 using LeaveManager.Data.Models;
-using LeaveManager.Data.Repositories;
+using LeaveManager.App.Services;   // 🔹 Artık Business değil
 
 namespace LeaveManager.App
 {
     public partial class NewLeaveWindow : Window
     {
-        // We keep these for UI flow (MainWindow can still read them if needed)
         public DateTime StartDate { get; private set; }
         public DateTime EndDate { get; private set; }
         public string LeaveType { get; private set; } = "Yıllık";
 
-        // Sprint 1: we must know for which employee we are saving the leave.
         public int EmployeeId { get; }
 
         public bool IsSavedToDatabase { get; private set; }
+
+        private readonly LeaveService _leaveService;
 
         public NewLeaveWindow(int employeeId)
         {
             InitializeComponent();
 
             EmployeeId = employeeId;
+            _leaveService = new LeaveService();
 
-            // Default dates: today
             StartDatePicker.SelectedDate = DateTime.Today;
             EndDatePicker.SelectedDate = DateTime.Today;
-
-            // Default type: first item
             LeaveTypeCombo.SelectedIndex = 0;
         }
 
@@ -41,7 +39,6 @@ namespace LeaveManager.App
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
-            // validate dates
             if (StartDatePicker.SelectedDate == null || EndDatePicker.SelectedDate == null)
             {
                 MessageBox.Show(
@@ -49,7 +46,6 @@ namespace LeaveManager.App
                     "Eksik bilgi",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
-
                 return;
             }
 
@@ -63,11 +59,9 @@ namespace LeaveManager.App
                     "Geçersiz tarih aralığı",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
-
                 return;
             }
 
-            // resolve type from ComboBoxItem 
             if (LeaveTypeCombo.SelectedItem is ComboBoxItem item && item.Content != null)
                 LeaveType = item.Content.ToString() ?? "Yıllık";
             else
@@ -78,16 +72,24 @@ namespace LeaveManager.App
 
             try
             {
-                var repo = new LeaveRepository();
-
-                repo.Add(new Leave
+                var leave = new Leave
                 {
                     EmployeeId = EmployeeId,
                     StartDate = StartDate,
                     EndDate = EndDate,
                     Type = LeaveType,
                     CreatedAt = DateTime.Now
-                });
+                };
+
+                if (!_leaveService.TryAddLeave(leave, out string error))
+                {
+                    MessageBox.Show(
+                        error,
+                        "Kural ihlali",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
 
                 IsSavedToDatabase = true;
                 DialogResult = true;

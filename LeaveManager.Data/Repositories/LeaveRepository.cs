@@ -8,11 +8,12 @@ namespace LeaveManager.Data.Repositories
 {
     public sealed class LeaveRepository
     {
+        private string ConnectionString =>
+            $"Data Source={DbPaths.GetDbFilePath()}";
+
         public void Add(Leave leave)
         {
-            using var connection = new SqliteConnection(
-                $"Data Source={DbPaths.GetDbFilePath()}");
-
+            using var connection = new SqliteConnection(ConnectionString);
             connection.Open();
 
             using var cmd = connection.CreateCommand();
@@ -36,13 +37,12 @@ VALUES
             cmd.ExecuteNonQuery();
         }
 
-        public List<Leave> GetByEmployee(int employeeId)
+        // 🔹 Service’in kullanacağı metod
+        public List<Leave> GetByEmployeeId(int employeeId)
         {
             var result = new List<Leave>();
 
-            using var connection = new SqliteConnection(
-                $"Data Source={DbPaths.GetDbFilePath()}");
-
+            using var connection = new SqliteConnection(ConnectionString);
             connection.Open();
 
             using var cmd = connection.CreateCommand();

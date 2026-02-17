@@ -188,7 +188,11 @@ namespace LeaveManager.Data.Repositories
         // -----------------------------
         //  RESTORE DELETED METHOD
         // -----------------------------
-        public (Employee employee, bool WasRestored) RestoreOrCreate(int sicilNo, string fullName, EmployeeRole role, int? managerId = null)
+        public (Employee employee, bool WasRestored) RestoreOrCreate(
+    int sicilNo,
+    string fullName,
+    EmployeeRole role,
+    int? managerId = null)
         {
             using var connection = new SqliteConnection(ConnectionString);
             connection.Open();
@@ -211,8 +215,8 @@ namespace LeaveManager.Data.Repositories
 
                 if (!isActive)
                 {
-                    // Restore
                     reader.Close();
+
                     using var restoreCmd = connection.CreateCommand();
                     restoreCmd.CommandText = @"
                 UPDATE Employees
@@ -222,10 +226,13 @@ namespace LeaveManager.Data.Repositories
                     is_active = 1
                 WHERE id = @id;
             ";
+
                     restoreCmd.Parameters.AddWithValue("@full_name", fullName);
                     restoreCmd.Parameters.AddWithValue("@role", (int)role);
-                    restoreCmd.Parameters.AddWithValue("@manager_id", managerId.HasValue ? managerId : DBNull.Value);
+                    restoreCmd.Parameters.AddWithValue("@manager_id",
+                        managerId.HasValue ? managerId : DBNull.Value);
                     restoreCmd.Parameters.AddWithValue("@id", id);
+
                     restoreCmd.ExecuteNonQuery();
 
                     var restoredEmployee = new Employee
@@ -246,23 +253,33 @@ namespace LeaveManager.Data.Repositories
                 }
             }
 
-            // Insert new employee
             reader.Close();
+
+            // Insert new employee
             using var insertCmd = connection.CreateCommand();
             insertCmd.CommandText = @"
         INSERT INTO Employees (sicil_no, full_name, role, manager_id, is_active)
         VALUES (@sicil_no, @full_name, @role, @manager_id, 1);
     ";
+
             insertCmd.Parameters.AddWithValue("@sicil_no", sicilNo);
             insertCmd.Parameters.AddWithValue("@full_name", fullName);
             insertCmd.Parameters.AddWithValue("@role", (int)role);
-            insertCmd.Parameters.AddWithValue("@manager_id", managerId.HasValue ? managerId : DBNull.Value);
+            insertCmd.Parameters.AddWithValue("@manager_id",
+                managerId.HasValue ? managerId : DBNull.Value);
+
             insertCmd.ExecuteNonQuery();
 
-            // Get last inserted id
+            // Get last inserted id (SAFE)
             using var lastIdCmd = connection.CreateCommand();
             lastIdCmd.CommandText = "SELECT last_insert_rowid();";
-            long newId = (long)lastIdCmd.ExecuteScalar();
+
+            var result = lastIdCmd.ExecuteScalar();
+
+            if (result == null)
+                throw new InvalidOperationException("Yeni çalışan ID'si alınamadı.");
+
+            long newId = Convert.ToInt64(result);
 
             var newEmployee = new Employee
             {
@@ -276,6 +293,7 @@ namespace LeaveManager.Data.Repositories
 
             return (newEmployee, false);
         }
+    
     }
 }
     

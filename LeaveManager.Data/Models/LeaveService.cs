@@ -1,10 +1,9 @@
-﻿using LeaveManager.App;
-using LeaveManager.Data.Models;
+﻿using LeaveManager.Data.Models;
 using LeaveManager.Data.Repositories;
 using System;
 using System.Collections.Generic;
 
-namespace LeaveManager.Business
+namespace LeaveManager.App.Services   // new namespace
 {
     public class LeaveService
     {
@@ -33,7 +32,7 @@ namespace LeaveManager.Business
         {
             var employee = _employeeRepository.GetById(newLeave.EmployeeId);
 
-            if (employee == null)
+            if (employee is null)
             {
                 errorMessage = "Çalışan bulunamadı.";
                 return false;

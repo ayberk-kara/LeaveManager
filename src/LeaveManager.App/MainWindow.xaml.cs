@@ -219,7 +219,7 @@ namespace LeaveManager.App
             if (SelectedEmployee == null)
                 return;
 
-            var leaves = _leaveRepository.GetByEmployee(SelectedEmployee.Id);
+            var leaves = _leaveRepository.GetByEmployeeId(SelectedEmployee.Id);
 
             foreach (var leave in leaves)
             {
