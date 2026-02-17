@@ -1,5 +1,4 @@
 ﻿using LeaveManager.Data.Models;
-using LeaveManager.Data.Repositories;
 using LeaveManager.Models;
 using System;
 using System.Collections.Generic;
@@ -24,7 +23,6 @@ namespace LeaveManager.App
             out string reason);
     }
 
-    // ================= 1 =================
     public class DateRangeRule : LeaveRule
     {
         public DateRangeRule() : base("Geçersiz Tarih Aralığı") { }
@@ -46,7 +44,6 @@ namespace LeaveManager.App
         }
     }
 
-    // ================= 2 =================
     public class NoPastStartRule : LeaveRule
     {
         public NoPastStartRule() : base("Geçmiş Tarihte İzin Başlatılamaz") { }
@@ -68,32 +65,6 @@ namespace LeaveManager.App
         }
     }
 
-    // ================= 3 =================
-    /*
-    public class MaxConsecutiveDaysRule : LeaveRule
-    {
-        public MaxConsecutiveDaysRule() : base("Maksimum Ardışık Gün Kuralı") { }
-
-        public override bool Validate(Employee employee,
-            IEnumerable<Employee> allEmployees,
-            IEnumerable<Leave> existingLeaves,
-            Leave newLeave,
-            out string reason)
-        {
-            int duration = (newLeave.EndDate - newLeave.StartDate).Days + 1;
-
-            if (duration > 10)
-            {
-                reason = "Bir izin en fazla 10 gün ardışık olabilir.";
-                return false;
-            }
-
-            reason = string.Empty;
-            return true;
-        }
-    }
-    */
-    // ================= 4 =================
     public class NoOverlapRule : LeaveRule
     {
         public NoOverlapRule() : base("Çakışan İzin Kuralı") { }
@@ -117,7 +88,6 @@ namespace LeaveManager.App
         }
     }
 
-    // ================= 5 =================
     public class OneLeavePerDayRule : LeaveRule
     {
         public OneLeavePerDayRule() : base("Aynı Gün Tek İzin Kuralı") { }
@@ -139,93 +109,6 @@ namespace LeaveManager.App
         }
     }
 
-    // ================= 6 =================
-    public class SickLeaveLimitRule : LeaveRule
-    {
-        public SickLeaveLimitRule() : base("Yıllık Rapor İzni Limit Kuralı") { }
-
-        public override bool Validate(
-            Employee employee,
-            IEnumerable<Employee> allEmployees,
-            IEnumerable<Leave> existingLeaves,
-            Leave newLeave,
-            out string reason)
-        {
-            if (newLeave.Type != "Sick")
-            {
-                reason = string.Empty;
-                return true;
-            }
-
-            var balanceRepo = new LeaveBalanceRepository();
-
-            int year = newLeave.StartDate.Year;
-
-            var balance = balanceRepo.GetByEmployeeAndYear(employee.Id, year);
-
-            if (balance == null)
-            {
-                reason = string.Empty;
-                return true; // balance service içinde oluşturulacak
-            }
-
-            int requestedDays = (newLeave.EndDate - newLeave.StartDate).Days + 1;
-
-            if (balance.SickRemaining < requestedDays)
-            {
-                reason = $"Kalan rapor izni yetersiz. Kalan: {balance.SickRemaining}";
-                return false;
-            }
-
-            reason = string.Empty;
-            return true;
-        }
-    }
-
-    // ================= 7 =================
-    public class AnnualLeaveLimitRule : LeaveRule
-    {
-        public AnnualLeaveLimitRule() : base("Yıllık İzin Limit Kuralı") { }
-
-        public override bool Validate(
-            Employee employee,
-            IEnumerable<Employee> allEmployees,
-            IEnumerable<Leave> existingLeaves,
-            Leave newLeave,
-            out string reason)
-        {
-            if (newLeave.Type != "Annual")
-            {
-                reason = string.Empty;
-                return true;
-            }
-
-            var balanceRepo = new LeaveBalanceRepository();
-
-            int year = newLeave.StartDate.Year;
-
-            var balance = balanceRepo.GetByEmployeeAndYear(employee.Id, year);
-
-            if (balance == null)
-            {
-                reason = string.Empty;
-                return true; 
-            }
-
-            int requestedDays = (newLeave.EndDate - newLeave.StartDate).Days + 1;
-
-            if (balance.AnnualRemaining < requestedDays)
-            {
-                reason = $"Kalan yıllık izin yetersiz. Kalan: {balance.AnnualRemaining}";
-                return false;
-            }
-
-            reason = string.Empty;
-            return true;
-        }
-    }
-
-    // ================= 8 =================
     public class AssistantConflictRule : LeaveRule
     {
         public AssistantConflictRule() : base("Aynı Müdür Yardımcısı Çakışma Kuralı") { }
@@ -263,9 +146,6 @@ namespace LeaveManager.App
         }
     }
 
-
- 
-
     public class LongLeaveGapRule : LeaveRule
     {
         public LongLeaveGapRule() : base("Uzun İzinler Arası 3 Ay Kuralı") { }
@@ -283,24 +163,16 @@ namespace LeaveManager.App
             {
                 int existingDuration = (leave.EndDate - leave.StartDate).Days + 1;
 
-                
                 if (existingDuration > 5 && newDuration > 5)
                 {
                     int gap;
 
                     if (newLeave.StartDate > leave.EndDate)
-                    {
                         gap = (newLeave.StartDate - leave.EndDate).Days;
-                    }
                     else if (leave.StartDate > newLeave.EndDate)
-                    {
                         gap = (leave.StartDate - newLeave.EndDate).Days;
-                    }
                     else
-                    {
-                     
                         continue;
-                    }
 
                     if (gap < 90)
                     {
@@ -308,38 +180,6 @@ namespace LeaveManager.App
                         return false;
                     }
                 }
-            }
-
-            reason = string.Empty;
-            return true;
-        }
-    }
-    public static class LeaveRules
-    {
-        private static readonly List<LeaveRule> _rules = new()
-        {
-            new DateRangeRule(),
-            new NoPastStartRule(),
-            //new MaxConsecutiveDaysRule(),
-            new NoOverlapRule(),
-            new LongLeaveGapRule(),
-            new OneLeavePerDayRule(),
-            new SickLeaveLimitRule(),
-            new AnnualLeaveLimitRule(),
-            new AssistantConflictRule()
-        };
-
-        public static bool ValidateAll(
-            Employee employee,
-            IEnumerable<Employee> allEmployees,
-            IEnumerable<Leave> existingLeaves,
-            Leave newLeave,
-            out string reason)
-        {
-            foreach (var rule in _rules)
-            {
-                if (!rule.Validate(employee, allEmployees, existingLeaves, newLeave, out reason))
-                    return false;
             }
 
             reason = string.Empty;
