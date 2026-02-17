@@ -1,4 +1,5 @@
 ﻿using LeaveManager.Data.Models;
+using LeaveManager.Data.Repositories;
 using LeaveManager.Models;
 using System;
 using System.Collections.Generic;
@@ -143,7 +144,8 @@ namespace LeaveManager.App
     {
         public SickLeaveLimitRule() : base("Yıllık Rapor İzni Limit Kuralı") { }
 
-        public override bool Validate(Employee employee,
+        public override bool Validate(
+            Employee employee,
             IEnumerable<Employee> allEmployees,
             IEnumerable<Leave> existingLeaves,
             Leave newLeave,
@@ -155,17 +157,23 @@ namespace LeaveManager.App
                 return true;
             }
 
+            var balanceRepo = new LeaveBalanceRepository();
+
             int year = newLeave.StartDate.Year;
 
-            int total = existingLeaves
-                .Where(l => l.Type == "Sick" && l.StartDate.Year == year)
-                .Sum(l => (l.EndDate - l.StartDate).Days + 1);
+            var balance = balanceRepo.GetByEmployeeAndYear(employee.Id, year);
 
-            total += (newLeave.EndDate - newLeave.StartDate).Days + 1;
-
-            if (total > 40)
+            if (balance == null)
             {
-                reason = "Bir takvim yılı içinde toplam raporlu izin süresi 40 günü aşamaz.";
+                reason = string.Empty;
+                return true; // balance service içinde oluşturulacak
+            }
+
+            int requestedDays = (newLeave.EndDate - newLeave.StartDate).Days + 1;
+
+            if (balance.SickRemaining < requestedDays)
+            {
+                reason = $"Kalan rapor izni yetersiz. Kalan: {balance.SickRemaining}";
                 return false;
             }
 
@@ -179,7 +187,8 @@ namespace LeaveManager.App
     {
         public AnnualLeaveLimitRule() : base("Yıllık İzin Limit Kuralı") { }
 
-        public override bool Validate(Employee employee,
+        public override bool Validate(
+            Employee employee,
             IEnumerable<Employee> allEmployees,
             IEnumerable<Leave> existingLeaves,
             Leave newLeave,
@@ -191,17 +200,23 @@ namespace LeaveManager.App
                 return true;
             }
 
+            var balanceRepo = new LeaveBalanceRepository();
+
             int year = newLeave.StartDate.Year;
 
-            int total = existingLeaves
-                .Where(l => l.Type == "Annual" && l.StartDate.Year == year)
-                .Sum(l => (l.EndDate - l.StartDate).Days + 1);
+            var balance = balanceRepo.GetByEmployeeAndYear(employee.Id, year);
 
-            total += (newLeave.EndDate - newLeave.StartDate).Days + 1;
-
-            if (total > 30)
+            if (balance == null)
             {
-                reason = "Bir takvim yılı içinde toplam yıllık izin süresi 30 günü aşamaz.";
+                reason = string.Empty;
+                return true; 
+            }
+
+            int requestedDays = (newLeave.EndDate - newLeave.StartDate).Days + 1;
+
+            if (balance.AnnualRemaining < requestedDays)
+            {
+                reason = $"Kalan yıllık izin yetersiz. Kalan: {balance.AnnualRemaining}";
                 return false;
             }
 
