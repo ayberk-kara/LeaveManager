@@ -1,6 +1,8 @@
 ﻿using LeaveManager.App;
 using LeaveManager.Data.Models;
 using LeaveManager.Data.Repositories;
+using LeaveManager.Data.Storage;
+using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 
@@ -12,6 +14,9 @@ namespace LeaveManager.Business
         private readonly EmployeeRepository _employeeRepository;
         private readonly List<LeaveRule> _rules;
 
+        private string ConnectionString =>
+            $"Data Source={DbPaths.GetDbFilePath()}";
+
         public LeaveService()
         {
             _leaveRepository = new LeaveRepository();
@@ -21,7 +26,6 @@ namespace LeaveManager.Business
             {
                 new DateRangeRule(),
                 new NoPastStartRule(),
-                //new MaxConsecutiveDaysRule(),
                 new NoOverlapRule(),
                 new LongLeaveGapRule(),
                 new AnnualLeaveLimitRule(),
@@ -31,27 +35,45 @@ namespace LeaveManager.Business
 
         public bool TryAddLeave(Leave newLeave, out string errorMessage)
         {
-            var employee = _employeeRepository.GetById(newLeave.EmployeeId);
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
 
-            if (employee == null)
+            using var tx = connection.BeginTransaction();
+
+            try
             {
-                errorMessage = "Çalışan bulunamadı.";
+                var employee = _employeeRepository.GetById(newLeave.EmployeeId);
+
+                if (employee == null)
+                {
+                    errorMessage = "Çalışan bulunamadı.";
+                    return false;
+                }
+
+                var existingLeaves =
+                    _leaveRepository.GetByEmployeeId(connection, newLeave.EmployeeId);
+
+                var allEmployees = _employeeRepository.GetAllActive();
+
+                foreach (var rule in _rules)
+                {
+                    if (!rule.Validate(employee, allEmployees, existingLeaves, newLeave, out errorMessage))
+                        return false;
+                }
+
+                _leaveRepository.Add(connection, tx, newLeave);
+
+                tx.Commit();
+
+                errorMessage = string.Empty;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                tx.Rollback();
+                errorMessage = ex.Message;
                 return false;
             }
-
-            var existingLeaves = _leaveRepository.GetByEmployeeId(newLeave.EmployeeId);
-            var allEmployees = _employeeRepository.GetAllActive();
-
-            foreach (var rule in _rules)
-            {
-                if (!rule.Validate(employee, allEmployees, existingLeaves, newLeave, out errorMessage))
-                    return false;
-            }
-
-            _leaveRepository.Add(newLeave);
-
-            errorMessage = string.Empty;
-            return true;
         }
     }
 }

@@ -1,21 +1,16 @@
 ﻿using LeaveManager.Data.Models;
 using Microsoft.Data.Sqlite;
-using System;
-using System.Collections.Generic;
 
 namespace LeaveManager.Data.Repositories
 {
     public class LeaveBalanceRepository
     {
-        private readonly string _connectionString =
-            "Data Source=leave_manager.db";
-
-        public LeaveBalance? GetByEmployeeAndYear(int employeeId, int year)
+        public LeaveBalance? GetByEmployeeAndYear(
+            SqliteConnection connection,
+            int employeeId,
+            int year)
         {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            var cmd = connection.CreateCommand();
+            using var cmd = connection.CreateCommand();
             cmd.CommandText = @"
 SELECT *
 FROM LeaveBalances
@@ -32,12 +27,14 @@ WHERE employee_id = $emp AND year = $year;
             return Map(reader);
         }
 
-        public void Create(LeaveBalance balance)
+        public void Create(
+            SqliteConnection connection,
+            SqliteTransaction tx,
+            LeaveBalance balance)
         {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
 
-            var cmd = connection.CreateCommand();
             cmd.CommandText = @"
 INSERT INTO LeaveBalances
 (employee_id, year,
@@ -63,12 +60,14 @@ VALUES
             cmd.ExecuteNonQuery();
         }
 
-        public void Update(LeaveBalance balance)
+        public void Update(
+            SqliteConnection connection,
+            SqliteTransaction tx,
+            LeaveBalance balance)
         {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
 
-            var cmd = connection.CreateCommand();
             cmd.CommandText = @"
 UPDATE LeaveBalances SET
  annual_entitled = $aEnt,
@@ -94,12 +93,15 @@ WHERE employee_id = $emp AND year = $year;
             cmd.ExecuteNonQuery();
         }
 
-        public void Delete(int employeeId, int year)
+        public void Delete(
+            SqliteConnection connection,
+            SqliteTransaction tx,
+            int employeeId,
+            int year)
         {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
 
-            var cmd = connection.CreateCommand();
             cmd.CommandText = @"
 DELETE FROM LeaveBalances
 WHERE employee_id = $emp AND year = $year;
