@@ -32,11 +32,10 @@ namespace LeaveManager.App
             txtName.Text = fullName;
             txtRegistryNo.Text = sicilNo.ToString();
 
-            // --- Rol ---
             cmbRole.ItemsSource = new List<string>(_roleMap.Values);
             cmbRole.SelectedItem = _roleMap[role];
 
-            // --- Müdür Yardımcıları ---
+           
             _assistants = _repository.GetAssistants();
             cmbManagerAssistant.ItemsSource = _assistants;
             cmbManagerAssistant.DisplayMemberPath = "FullName";
@@ -46,7 +45,7 @@ namespace LeaveManager.App
             {
                 ManagerAssistantPanel.Visibility = Visibility.Visible;
                 if (managerId.HasValue)
-                    cmbManagerAssistant.SelectedValue = managerId.Value; // pre-select mevcut bağlı yardımcı
+                    cmbManagerAssistant.SelectedValue = managerId.Value; 
             }
             else
             {
