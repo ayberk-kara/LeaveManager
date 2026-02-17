@@ -1,4 +1,5 @@
 ﻿using LeaveManager.Data.Models;
+using LeaveManager.Data.Repositories;
 using LeaveManager.Models;
 using System;
 using System.Collections.Generic;
@@ -111,9 +112,11 @@ namespace LeaveManager.App
 
     public class AssistantConflictRule : LeaveRule
     {
-        public AssistantConflictRule() : base("Aynı Müdür Yardımcısı Çakışma Kuralı") { }
+        public AssistantConflictRule()
+            : base("Aynı Müdür Yardımcısı Çakışma Kuralı") { }
 
-        public override bool Validate(Employee employee,
+        public override bool Validate(
+            Employee employee,
             IEnumerable<Employee> allEmployees,
             IEnumerable<Leave> existingLeaves,
             Leave newLeave,

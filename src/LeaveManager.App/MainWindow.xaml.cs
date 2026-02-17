@@ -1,6 +1,8 @@
 ﻿using LeaveManager.Data.Models;
 using LeaveManager.Data.Repositories;
+using LeaveManager.Data.Storage;
 using LeaveManager.Models;
+using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -219,7 +221,12 @@ namespace LeaveManager.App
             if (SelectedEmployee == null)
                 return;
 
-            var leaves = _leaveRepository.GetByEmployeeId(SelectedEmployee.Id);
+            var connectionString = $"Data Source={DbPaths.GetDbFilePath()}";
+
+            using var connection = new SqliteConnection(connectionString);
+            connection.Open();
+
+            var leaves = _leaveRepository.GetByEmployeeId(connection, SelectedEmployee.Id);
 
             foreach (var leave in leaves)
             {

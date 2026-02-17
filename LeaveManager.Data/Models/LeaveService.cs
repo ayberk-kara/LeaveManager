@@ -1,5 +1,7 @@
 ﻿using LeaveManager.Data.Models;
 using LeaveManager.Data.Repositories;
+using LeaveManager.Data.Storage;
+using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 
@@ -9,14 +11,17 @@ namespace LeaveManager.App.Services
     {
         private readonly LeaveRepository _leaveRepository;
         private readonly EmployeeRepository _employeeRepository;
-        private readonly LeaveBalanceRepository _balanceRepository;   
+        private readonly LeaveBalanceRepository _balanceRepository;
         private readonly List<LeaveRule> _rules;
+
+        private string ConnectionString =>
+            $"Data Source={DbPaths.GetDbFilePath()}";
 
         public LeaveService()
         {
             _leaveRepository = new LeaveRepository();
             _employeeRepository = new EmployeeRepository();
-            _balanceRepository = new LeaveBalanceRepository(); 
+            _balanceRepository = new LeaveBalanceRepository();
 
             _rules = new List<LeaveRule>
             {
@@ -24,44 +29,93 @@ namespace LeaveManager.App.Services
                 new NoPastStartRule(),
                 new NoOverlapRule(),
                 new LongLeaveGapRule(),
-                new AnnualLeaveLimitRule(),
-                new SickLeaveLimitRule()
+               
             };
         }
 
         public bool TryAddLeave(Leave newLeave, out string errorMessage)
         {
-            var employee = _employeeRepository.GetById(newLeave.EmployeeId);
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
 
-            if (employee is null)
+            using var tx = connection.BeginTransaction();
+
+            try
             {
-                errorMessage = "Çalışan bulunamadı.";
+                var employee = _employeeRepository.GetById(newLeave.EmployeeId);
+
+                if (employee is null)
+                {
+                    errorMessage = "Çalışan bulunamadı.";
+                    return false;
+                }
+
+                var existingLeaves =
+                    _leaveRepository.GetByEmployeeId(connection, newLeave.EmployeeId);
+
+                var allEmployees = _employeeRepository.GetAllActive();
+
+                foreach (var rule in _rules)
+                {
+                    if (!rule.Validate(employee, allEmployees, existingLeaves, newLeave, out errorMessage))
+                        return false;
+                }
+
+                var splitLeaves = SplitLeaveByYear(newLeave);
+
+                foreach (var leavePart in splitLeaves)
+                {
+                    EnsureBalanceExists(connection, tx, leavePart.EmployeeId, leavePart.Year);
+
+                    var balance = _balanceRepository
+    .GetByEmployeeAndYear(connection, leavePart.EmployeeId, leavePart.Year);
+
+                    if (balance == null)
+                        throw new Exception("Balance bulunamadı.");
+
+                    if (leavePart.Type == "Annual")
+                    {
+                        int remaining =
+                            balance.AnnualEntitled +
+                            balance.AnnualManualAdjust -
+                            balance.AnnualUsed;
+
+                        if (leavePart.Days > remaining)
+                        {
+                            tx.Rollback();
+                            errorMessage = $"Yetersiz yıllık izin bakiyesi. Kalan: {remaining}";
+                            return false;
+                        }
+                    }
+                    else if (leavePart.Type == "Sick")
+                    {
+                        int remaining =
+                            balance.SickEntitled +
+                            balance.SickManualAdjust -
+                            balance.SickUsed;
+
+                        if (leavePart.Days > remaining)
+                        {
+                            errorMessage = $"Yetersiz hastalık izni bakiyesi. Kalan: {remaining}";
+                            return false;
+                        }
+                    }
+
+                    _leaveRepository.Add(connection, tx, leavePart);
+
+                    UpdateBalanceUsage(connection, tx, leavePart);
+                }
+
+                tx.Commit();
+                errorMessage = string.Empty;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                tx.Rollback();
+                errorMessage = ex.Message;
                 return false;
             }
-
-            var existingLeaves = _leaveRepository.GetByEmployeeId(newLeave.EmployeeId);
-            var allEmployees = _employeeRepository.GetAllActive();
-
-            foreach (var rule in _rules)
-            {
-                if (!rule.Validate(employee, allEmployees, existingLeaves, newLeave, out errorMessage))
-                    return false;
-            }
-
-            // 🔥 Cross-year split
-            var splitLeaves = SplitLeaveByYear(newLeave);
-
-            foreach (var leavePart in splitLeaves)
-            {
-                EnsureBalanceExists(leavePart.EmployeeId, leavePart.Year);
-
-                _leaveRepository.Add(leavePart);
-
-                UpdateBalanceUsage(leavePart);
-            }
-
-            errorMessage = string.Empty;
-            return true;
         }
 
         // ------------------------------------------------------------
@@ -93,7 +147,6 @@ namespace LeaveManager.App.Services
                 currentStart = yearEnd.AddDays(1);
             }
 
-            // Son parça
             var finalDays = (end - currentStart).Days + 1;
 
             result.Add(new Leave
@@ -113,14 +166,19 @@ namespace LeaveManager.App.Services
         // ------------------------------------------------------------
         // BALANCE CREATE IF MISSING
         // ------------------------------------------------------------
-        private void EnsureBalanceExists(int employeeId, int year)
+        private void EnsureBalanceExists(SqliteConnection connection,
+                                         SqliteTransaction tx,
+                                         int employeeId,
+                                         int year)
         {
-            var balance = _balanceRepository.GetByEmployeeAndYear(employeeId, year);
+            var balance = _balanceRepository
+                .GetByEmployeeAndYear(connection, employeeId, year);
 
             if (balance != null)
                 return;
 
-            var prev = _balanceRepository.GetByEmployeeAndYear(employeeId, year - 1);
+            var prev = _balanceRepository
+                .GetByEmployeeAndYear(connection, employeeId, year - 1);
 
             int carry = 0;
 
@@ -134,7 +192,7 @@ namespace LeaveManager.App.Services
                     carry = 0;
             }
 
-            _balanceRepository.Create(new LeaveBalance
+            _balanceRepository.Create(connection, tx, new LeaveBalance
             {
                 EmployeeId = employeeId,
                 Year = year,
@@ -146,16 +204,19 @@ namespace LeaveManager.App.Services
                 SickManualAdjust = 0
             });
 
-            // retention policy
-            _balanceRepository.Delete(employeeId, year - 2);
+            // retention policy (2 yıl öncesini sil)
+            _balanceRepository.Delete(connection, tx, employeeId, year - 2);
         }
 
         // ------------------------------------------------------------
         // BALANCE UPDATE
         // ------------------------------------------------------------
-        private void UpdateBalanceUsage(Leave leave)
+        private void UpdateBalanceUsage(SqliteConnection connection,
+                                        SqliteTransaction tx,
+                                        Leave leave)
         {
-            var balance = _balanceRepository.GetByEmployeeAndYear(leave.EmployeeId, leave.Year);
+            var balance = _balanceRepository
+                .GetByEmployeeAndYear(connection, leave.EmployeeId, leave.Year);
 
             if (balance == null)
                 throw new Exception("Balance bulunamadı.");
@@ -165,7 +226,7 @@ namespace LeaveManager.App.Services
             else if (leave.Type == "Sick")
                 balance.SickUsed += leave.Days;
 
-            _balanceRepository.Update(balance);
+            _balanceRepository.Update(connection, tx, balance);
         }
     }
 }
