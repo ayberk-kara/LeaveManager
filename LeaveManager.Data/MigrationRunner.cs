@@ -15,6 +15,7 @@ namespace LeaveManager.Data
             {
                 new Migration_001_Init(),
                 new Migration_002_AddDaysColumn(),
+                new Migration_003_AddLeaveBalances(),
             };
 
             foreach (var migration in migrations.OrderBy(m => m.Version))
