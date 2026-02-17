@@ -2,48 +2,36 @@
 using System.Collections.Generic;
 using Microsoft.Data.Sqlite;
 using LeaveManager.Data.Models;
-using LeaveManager.Data.Storage;
 
 namespace LeaveManager.Data.Repositories
 {
     public sealed class LeaveRepository
     {
-        private string ConnectionString =>
-            $"Data Source={DbPaths.GetDbFilePath()}";
-
-        public void Add(Leave leave)
+        public void Add(SqliteConnection connection, SqliteTransaction tx, Leave leave)
         {
-            using var connection = new SqliteConnection(ConnectionString);
-            connection.Open();
-
             using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
+
             cmd.CommandText = @"
 INSERT INTO Leaves 
-(employee_id, start_date, end_date, days, type, note, created_utc)
+(employee_id, start_date, end_date, days, type, created_utc)
 VALUES 
-(@employeeId, @startDate, @endDate, @days, @type, @note, @createdUtc);
+(@employeeId, @startDate, @endDate, @days, @type, @createdUtc);
 ";
-
-            var days = (leave.EndDate - leave.StartDate).Days + 1;
 
             cmd.Parameters.AddWithValue("@employeeId", leave.EmployeeId);
             cmd.Parameters.AddWithValue("@startDate", leave.StartDate.ToString("yyyy-MM-dd"));
             cmd.Parameters.AddWithValue("@endDate", leave.EndDate.ToString("yyyy-MM-dd"));
-            cmd.Parameters.AddWithValue("@days", days);
+            cmd.Parameters.AddWithValue("@days", leave.Days);
             cmd.Parameters.AddWithValue("@type", leave.Type);
-            cmd.Parameters.AddWithValue("@note", "");
             cmd.Parameters.AddWithValue("@createdUtc", leave.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"));
 
             cmd.ExecuteNonQuery();
         }
 
-        // 🔹 Service’in kullanacağı metod
-        public List<Leave> GetByEmployeeId(int employeeId)
+        public List<Leave> GetByEmployeeId(SqliteConnection connection, int employeeId)
         {
             var result = new List<Leave>();
-
-            using var connection = new SqliteConnection(ConnectionString);
-            connection.Open();
 
             using var cmd = connection.CreateCommand();
             cmd.CommandText = @"
