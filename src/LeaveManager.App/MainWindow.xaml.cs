@@ -39,7 +39,7 @@ namespace LeaveManager.App
                   _vm.SelectedEmployee.FullName,  
                   _vm.SelectedEmployee.SicilNo,   
                   _vm.SelectedEmployee.Role,      
-                    
+                  _vm.SelectedEmployee.ManagerId  
             )
             {
                 Owner = this
