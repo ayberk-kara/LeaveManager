@@ -12,6 +12,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using LeaveManager.Helpers;
 
 namespace LeaveManager.App
 {
@@ -27,6 +28,12 @@ namespace LeaveManager.App
             DataContext = _vm;
 
             SetCalendarsToBaseMonth(_vm.BaseMonth);
+
+            // Personel seçildiğinde veya izinler değiştiğinde takvimleri renklendir
+            _vm.SelectedEmployeeChanged += (s, e) =>
+            {
+                HighlightSelectedEmployeeLeaves();
+            };
         }
 
         private void ManageEmployee_Click(object sender, RoutedEventArgs e)
@@ -35,11 +42,11 @@ namespace LeaveManager.App
                 return;
 
             var dialog = new EditEmployeeWindow(
-                  _vm.SelectedEmployee.Id,        
-                  _vm.SelectedEmployee.FullName,  
-                  _vm.SelectedEmployee.SicilNo,   
-                  _vm.SelectedEmployee.Role,      
-                  _vm.SelectedEmployee.ManagerId  
+                  _vm.SelectedEmployee.Id,
+                  _vm.SelectedEmployee.FullName,
+                  _vm.SelectedEmployee.SicilNo,
+                  _vm.SelectedEmployee.Role,
+                  _vm.SelectedEmployee.ManagerId
             )
             {
                 Owner = this
@@ -48,18 +55,14 @@ namespace LeaveManager.App
             if (dialog.ShowDialog() == true)
             {
                 if (dialog.IsDeleteRequested)
-                {
                     _vm.DeleteEmployee(_vm.SelectedEmployee.Id);
-                }
                 else
-                {
                     _vm.UpdateEmployee(
                         _vm.SelectedEmployee.Id,
                         dialog.UpdatedName,
                         dialog.UpdatedSicilNo,
                         dialog.UpdatedRole,
-                        dialog.UpdatedManagerId); 
-                }
+                        dialog.UpdatedManagerId);
             }
         }
 
@@ -89,6 +92,8 @@ namespace LeaveManager.App
             SetOneCalendarToMonth(Cal2, baseStart.AddMonths(1));
             SetOneCalendarToMonth(Cal3, baseStart.AddMonths(2));
             SetOneCalendarToMonth(Cal4, baseStart.AddMonths(3));
+
+            HighlightSelectedEmployeeLeaves(); // Ay değiştiğinde renkleri güncelle
         }
 
         private void PrevMonth_Click(object sender, RoutedEventArgs e)
@@ -126,6 +131,7 @@ namespace LeaveManager.App
                 return;
 
             _vm.ReloadSelectedEmployeeLeavesFromDatabase();
+            HighlightSelectedEmployeeLeaves(); // Yeni izin sonrası renkleri güncelle
             _vm.BaseMonth = NormalizeToMonthStart(dlg.StartDate);
             SetCalendarsToBaseMonth(_vm.BaseMonth);
         }
@@ -157,6 +163,19 @@ namespace LeaveManager.App
             if (dialog.ShowDialog() == true)
                 _vm.ReloadEmployeesFromDatabase();
         }
+
+        // ----------- Highlight helper -----------
+
+        private void HighlightSelectedEmployeeLeaves()
+        {
+            if (_vm.SelectedEmployee == null)
+                return;
+
+            CalendarHighlighter.HighlightLeaves(
+                new System.Windows.Controls.Calendar[] { Cal1, Cal2, Cal3, Cal4 },
+                _vm.SelectedEmployeeLeaves
+            );
+        }
     }
 
     // ================= VIEW MODEL =================
@@ -171,6 +190,7 @@ namespace LeaveManager.App
         private DateTime? _selectedDay;
 
         public event PropertyChangedEventHandler? PropertyChanged;
+        public event EventHandler? SelectedEmployeeChanged;
 
         public ObservableCollection<EmployeeItem> Employees { get; } = new();
         public ObservableCollection<LeaveItem> SelectedEmployeeLeaves { get; } = new();
@@ -197,6 +217,9 @@ namespace LeaveManager.App
             {
                 _selectedEmployee = value;
                 OnPropertyChanged();
+
+                ReloadSelectedEmployeeLeavesFromDatabase();
+                SelectedEmployeeChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -213,7 +236,6 @@ namespace LeaveManager.App
         public void SetSelectedDay(DateTime day)
         {
             SelectedDay = day;
-            
         }
 
         public void ReloadSelectedEmployeeLeavesFromDatabase()
@@ -290,7 +312,7 @@ namespace LeaveManager.App
         public string FullName { get; }
         public int SicilNo { get; }
         public EmployeeRole Role { get; }
-        public int? ManagerId { get; } // <-- ekledik
+        public int? ManagerId { get; }
 
         public string Subtitle => $"Sicil: {SicilNo}";
 
@@ -311,7 +333,7 @@ namespace LeaveManager.App
             FullName = fullName;
             SicilNo = sicilNo;
             Role = role;
-            ManagerId = managerId; // <-- set
+            ManagerId = managerId;
         }
     }
 
