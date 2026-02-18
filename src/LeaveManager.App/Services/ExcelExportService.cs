@@ -2,7 +2,7 @@
 using LeaveManager.App;
 using LeaveManager.Data.Repositories;
 using LeaveManager.Data.Storage;
-using LeaveManager.Services;
+using LeaveManager.App.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.Win32;
 using System;
