@@ -13,12 +13,15 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using LeaveManager.Helpers;
+using LeaveManager.App.Services;
+
 
 namespace LeaveManager.App
 {
     public partial class MainWindow : Window
     {
         private readonly MainViewModel _vm;
+        private readonly IExportService _exportService;
 
         public MainWindow()
         {
@@ -26,6 +29,7 @@ namespace LeaveManager.App
 
             _vm = new MainViewModel();
             DataContext = _vm;
+            _exportService = new ExcelExportService();
 
             SetCalendarsToBaseMonth(_vm.BaseMonth);
 
@@ -162,6 +166,26 @@ namespace LeaveManager.App
 
             if (dialog.ShowDialog() == true)
                 _vm.ReloadEmployeesFromDatabase();
+        }
+
+        private void ExportExcel_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                _exportService.ExportAnnualPlanToExcel(_vm.Employees, 2026);
+
+                MessageBox.Show("Excel dosyası başarıyla oluşturuldu.",
+                                "Başarılı",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Excel oluşturulurken hata oluştu:\n{ex.Message}",
+                                "Hata",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+            }
         }
 
         // ----------- Highlight helper -----------

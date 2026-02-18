@@ -362,6 +362,14 @@
                                 FontSize="16"
                                 Padding="24,0"
                                 Click="NewLeave_Click"/>
+                        <Button Content="Excel'e Aktar"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Height="52"
+                                MinWidth="170"
+                                FontSize="16"
+                                Padding="24,0"
+                                Margin="12,0,0,0"
+                                Click="ExportExcel_Click"/>
                     </StackPanel>
                 </Grid>
 

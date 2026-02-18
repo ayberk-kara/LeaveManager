@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
-using LeaveManager.Models;
+using LeaveManager.App;
 
-namespace LeaveManager.Services
+namespace LeaveManager.App.Services
 {
     public interface IExportService
     {
-        void ExportAnnualPlanToExcel(IEnumerable<Employee> employees, int year);
+        void ExportAnnualPlanToExcel(IEnumerable<EmployeeItem> employees, int year);
     }
 }
