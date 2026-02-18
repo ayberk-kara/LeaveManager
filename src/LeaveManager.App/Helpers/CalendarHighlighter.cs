@@ -54,19 +54,26 @@ namespace LeaveManager.Helpers
             }
         }
 
-        
+
         private static void ResetCalendarHighlights(Calendar cal)
         {
             cal.Dispatcher.InvokeAsync(() =>
             {
                 foreach (var dayButton in FindCalendarDayButtons(cal))
                 {
-                    dayButton.Background = DefaultBrush;
+                    if (dayButton.DataContext is DateTime dt)
+                    {
+                        
+                        if (dt.Date == DateTime.Today)
+                            dayButton.Background = Brushes.LightGray; 
+                        else
+                            dayButton.Background = DefaultBrush; 
+                    }
                 }
             });
         }
 
-        
+
         private static IEnumerable<CalendarDayButton> FindCalendarDayButtons(Calendar cal)
         {
             if (cal.Template.FindName("PART_CalendarItem", cal) is CalendarItem ci)

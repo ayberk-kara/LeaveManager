@@ -29,7 +29,7 @@ namespace LeaveManager.App
 
             SetCalendarsToBaseMonth(_vm.BaseMonth);
 
-            // Personel seçildiğinde veya izinler değiştiğinde takvimleri renklendir
+           
             _vm.SelectedEmployeeChanged += (s, e) =>
             {
                 HighlightSelectedEmployeeLeaves();
@@ -93,7 +93,7 @@ namespace LeaveManager.App
             SetOneCalendarToMonth(Cal3, baseStart.AddMonths(2));
             SetOneCalendarToMonth(Cal4, baseStart.AddMonths(3));
 
-            HighlightSelectedEmployeeLeaves(); // Ay değiştiğinde renkleri güncelle
+            HighlightSelectedEmployeeLeaves(); 
         }
 
         private void PrevMonth_Click(object sender, RoutedEventArgs e)
@@ -131,7 +131,7 @@ namespace LeaveManager.App
                 return;
 
             _vm.ReloadSelectedEmployeeLeavesFromDatabase();
-            HighlightSelectedEmployeeLeaves(); // Yeni izin sonrası renkleri güncelle
+            HighlightSelectedEmployeeLeaves(); 
             _vm.BaseMonth = NormalizeToMonthStart(dlg.StartDate);
             SetCalendarsToBaseMonth(_vm.BaseMonth);
         }

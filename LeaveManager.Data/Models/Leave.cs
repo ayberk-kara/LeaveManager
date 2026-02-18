@@ -15,7 +15,7 @@ namespace LeaveManager.Data.Models
         // Annual / Sick
         public string Type { get; set; } = string.Empty;
 
-        // Kaç gün izin alındı (DB'deki days kolonu)
+        
         public int Days { get; set; }
 
         // balance change of year
