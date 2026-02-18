@@ -35,7 +35,7 @@ VALUES
 
             using var cmd = connection.CreateCommand();
             cmd.CommandText = @"
-SELECT id, employee_id, start_date, end_date, type, created_utc
+SELECT id, employee_id, start_date, end_date, type, days, year, created_utc
 FROM Leaves
 WHERE employee_id = @employeeId
 ORDER BY start_date;
@@ -53,7 +53,9 @@ ORDER BY start_date;
                     StartDate = DateTime.Parse(reader.GetString(2)),
                     EndDate = DateTime.Parse(reader.GetString(3)),
                     Type = reader.GetString(4),
-                    CreatedAt = DateTime.Parse(reader.GetString(5))
+                    Days = reader.GetInt32(5),          
+                    Year = reader.GetInt32(6),          
+                    CreatedAt = DateTime.Parse(reader.GetString(7))
                 });
             }
 
