@@ -208,7 +208,7 @@ namespace LeaveManager.App.Services
                 SickManualAdjust = 0
             });
 
-            // retention policy (2 yıl öncesini sil)
+          
             _balanceRepository.Delete(connection, tx, employeeId, year - 2);
         }
 

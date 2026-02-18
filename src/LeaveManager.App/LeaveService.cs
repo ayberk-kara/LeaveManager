@@ -28,8 +28,7 @@ namespace LeaveManager.Business
                 new NoPastStartRule(),
                 new NoOverlapRule(),
                 new LongLeaveGapRule(),
-                new AnnualLeaveLimitRule(),
-                new SickLeaveLimitRule()
+                
             };
         }
 

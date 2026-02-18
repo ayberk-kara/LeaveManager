@@ -35,10 +35,12 @@ namespace LeaveManager.App
                 return;
 
             var dialog = new EditEmployeeWindow(
-                _vm.SelectedEmployee.FullName,
-                _vm.SelectedEmployee.SicilNo,
-                _vm.SelectedEmployee.Role,
-                _vm.SelectedEmployee.ManagerId) 
+                  _vm.SelectedEmployee.Id,        
+                  _vm.SelectedEmployee.FullName,  
+                  _vm.SelectedEmployee.SicilNo,   
+                  _vm.SelectedEmployee.Role,      
+                    
+            )
             {
                 Owner = this
             };

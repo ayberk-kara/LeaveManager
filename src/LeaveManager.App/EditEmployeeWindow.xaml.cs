@@ -4,19 +4,27 @@ using System.Windows;
 using System.Windows.Controls;
 using LeaveManager.Models;
 using LeaveManager.Data.Repositories;
+using LeaveManager.Data.Models;
+using Microsoft.Data.Sqlite;
+using LeaveManager.Data.Storage;
 
 namespace LeaveManager.App
 {
     public partial class EditEmployeeWindow : Window
     {
         // --- OUTPUT ---
-        public string UpdatedName { get; private set; }
+        public string UpdatedName { get; private set; } = string.Empty;
         public int UpdatedSicilNo { get; private set; }
         public EmployeeRole UpdatedRole { get; private set; }
         public int? UpdatedManagerId { get; private set; }
         public bool IsDeleteRequested { get; private set; }
 
         private readonly EmployeeRepository _repository = new();
+        private readonly LeaveBalanceRepository _balanceRepository = new();
+
+        private LeaveBalance? _currentBalance;
+        private readonly int _employeeId;
+
         private readonly Dictionary<EmployeeRole, string> _roleMap = new()
         {
             { EmployeeRole.Assistant, "Müdür Yardımcısı" },
@@ -25,9 +33,15 @@ namespace LeaveManager.App
 
         private List<Employee> _assistants = new();
 
-        public EditEmployeeWindow(string fullName, int sicilNo, EmployeeRole role, int? managerId)
+        public EditEmployeeWindow(int employeeId,
+                                  string fullName,
+                                  int sicilNo,
+                                  EmployeeRole role,
+                                  int? managerId)
         {
             InitializeComponent();
+
+            _employeeId = employeeId;
 
             txtName.Text = fullName;
             txtRegistryNo.Text = sicilNo.ToString();
@@ -35,7 +49,6 @@ namespace LeaveManager.App
             cmbRole.ItemsSource = new List<string>(_roleMap.Values);
             cmbRole.SelectedItem = _roleMap[role];
 
-           
             _assistants = _repository.GetAssistants();
             cmbManagerAssistant.ItemsSource = _assistants;
             cmbManagerAssistant.DisplayMemberPath = "FullName";
@@ -45,12 +58,36 @@ namespace LeaveManager.App
             {
                 ManagerAssistantPanel.Visibility = Visibility.Visible;
                 if (managerId.HasValue)
-                    cmbManagerAssistant.SelectedValue = managerId.Value; 
+                    cmbManagerAssistant.SelectedValue = managerId.Value;
             }
-            else
-            {
-                ManagerAssistantPanel.Visibility = Visibility.Collapsed;
-            }
+
+            LoadCurrentBalance();
+        }
+
+        private void LoadCurrentBalance()
+        {
+            int currentYear = DateTime.Now.Year;
+
+            using var connection = new SqliteConnection(DbPaths.GetDbFilePath());
+            connection.Open();
+
+            _currentBalance = _balanceRepository.GetByEmployeeAndYear(connection, _employeeId, currentYear);
+
+            if (_currentBalance == null)
+                return;
+
+            int remainingAnnual =
+                _currentBalance.AnnualEntitled +
+                _currentBalance.AnnualManualAdjust -
+                _currentBalance.AnnualUsed;
+
+            int remainingSick =
+                _currentBalance.SickEntitled +
+                _currentBalance.SickManualAdjust -
+                _currentBalance.SickUsed;
+
+            txtRemainingAnnual.Text = remainingAnnual.ToString();
+            txtRemainingSick.Text = remainingSick.ToString();
         }
 
         private void RoleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -63,47 +100,48 @@ namespace LeaveManager.App
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(txtName.Text))
+            if (!int.TryParse(txtRemainingAnnual.Text, out int newAnnual) ||
+                !int.TryParse(txtRemainingSick.Text, out int newSick))
             {
-                MessageBox.Show("Ad Soyad boş olamaz.", "Uyarı",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Geçerli izin değeri giriniz.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            if (!int.TryParse(txtRegistryNo.Text, out int sicilNo))
+            if (newAnnual < 0 || newSick < 0)
             {
-                MessageBox.Show("Geçerli bir sicil numarası giriniz.", "Uyarı",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Negatif izin girilemez.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            if (cmbRole.SelectedItem == null)
+            if (_currentBalance != null)
             {
-                MessageBox.Show("Rol seçiniz.", "Uyarı",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                
+                using var connection = new SqliteConnection(DbPaths.GetDbFilePath());
+                connection.Open();
+                using var tx = connection.BeginTransaction();
+
+                int baseAnnual = _currentBalance.AnnualEntitled - _currentBalance.AnnualUsed;
+                int baseSick = _currentBalance.SickEntitled - _currentBalance.SickUsed;
+
+                _currentBalance.AnnualManualAdjust = newAnnual - baseAnnual;
+                _currentBalance.SickManualAdjust = newSick - baseSick;
+
+                _balanceRepository.Update(connection, tx, _currentBalance);
+                tx.Commit();
             }
 
             UpdatedName = txtName.Text.Trim();
-            UpdatedSicilNo = sicilNo;
+            UpdatedSicilNo = int.Parse(txtRegistryNo.Text);
 
             foreach (var kv in _roleMap)
-            {
-                if (kv.Value == cmbRole.SelectedItem.ToString())
-                {
+                if (kv.Value == cmbRole.SelectedItem?.ToString())
                     UpdatedRole = kv.Key;
-                    break;
-                }
-            }
 
-            if (UpdatedRole == EmployeeRole.Employee && cmbManagerAssistant.SelectedItem is Employee selectedAssistant)
-            {
-                UpdatedManagerId = selectedAssistant.Id;
-            }
+            if (UpdatedRole == EmployeeRole.Employee &&
+                cmbManagerAssistant.SelectedItem is Employee selected)
+                UpdatedManagerId = selected.Id;
             else
-            {
                 UpdatedManagerId = null;
-            }
 
             IsDeleteRequested = false;
             DialogResult = true;
@@ -111,14 +149,8 @@ namespace LeaveManager.App
 
         private void Delete_Click(object sender, RoutedEventArgs e)
         {
-            var confirm = new DeleteConfirmWindow { Owner = this };
-            confirm.ShowDialog();
-
-            if (confirm.IsConfirmed)
-            {
-                IsDeleteRequested = true;
-                DialogResult = true;
-            }
+            IsDeleteRequested = true;
+            DialogResult = true;
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
