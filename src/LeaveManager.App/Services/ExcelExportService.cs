@@ -94,6 +94,30 @@ namespace LeaveManager.App.Services
             }
         }
 
+        private int GetRemainingAnnualLeave(SqliteConnection connection, int employeeId, int year)
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+        SELECT annual_entitled, annual_used
+        FROM LeaveBalances
+        WHERE employee_id = @empId AND year = @year;
+    ";
+
+            cmd.Parameters.AddWithValue("@empId", employeeId);
+            cmd.Parameters.AddWithValue("@year", year);
+
+            using var reader = cmd.ExecuteReader();
+
+            if (reader.Read())
+            {
+                int entitled = reader.GetInt32(0);
+                int used = reader.GetInt32(1);
+                return entitled - used;
+            }
+
+            return 0;
+        }
+
         private static Dictionary<int, string> BuildMonthlySummary(IEnumerable<Data.Models.Leave> leaves)
         {
             var result = new Dictionary<int, string>();
