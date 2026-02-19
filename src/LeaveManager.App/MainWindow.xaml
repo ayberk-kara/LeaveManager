@@ -318,54 +318,61 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
-                        <Button Content="◀"
-                                Width="44"
-                                Height="40"
-                                Margin="0,0,10,0"
-                                Background="#F3F4F6"
-                                Foreground="{StaticResource TextPrimary}"
-                                BorderThickness="1"
-                                BorderBrush="{StaticResource BorderBrushSoft}"
-                                Cursor="Hand"
-                                Click="PrevMonth_Click"/>
 
-                        <Button Content="Bugün"
-                                Height="40"
-                                Padding="14,0"
-                                Margin="0,0,10,0"
-                                Background="#F3F4F6"
-                                Foreground="{StaticResource TextPrimary}"
-                                BorderThickness="1"
-                                BorderBrush="{StaticResource BorderBrushSoft}"
-                                Cursor="Hand"
-                                Click="Today_Click"/>
+                       
+            <Button Content="Yeni izin"
+            Style="{StaticResource PrimaryButtonStyle}"
+            Height="40"
+            MinWidth="120"
+            FontSize="16"
+            Padding="24,0"
+            Click="NewLeave_Click"/>
 
-                        <Button Content="▶"
-                                Width="44"
-                                Height="40"
-                                Margin="0,0,12,0"
-                                Background="#F3F4F6"
-                                Foreground="{StaticResource TextPrimary}"
-                                BorderThickness="1"
-                                BorderBrush="{StaticResource BorderBrushSoft}"
-                                Cursor="Hand"
-                                Click="NextMonth_Click"/>
+                        
+            <Button Content="Excel'e Aktar"
+            Style="{StaticResource PrimaryButtonStyle}"
+            Height="40"
+            MinWidth="120"
+            FontSize="16"
+            Padding="24,0"
+            Margin="12,0,20,0"
+            Click="ExportExcel_Click"/>
 
-                        <Button Content="Yeni izin"
-                                Style="{StaticResource PrimaryButtonStyle}"
-                                Height="40"
-                                MinWidth="160"
-                                FontSize="16"
-                                Padding="24,0"
-                                Click="NewLeave_Click" Width="54"/>
-                        <Button Content="Excel'e Aktar"
-                                Style="{StaticResource PrimaryButtonStyle}"
-                                Height="40"
-                                MinWidth="160"
-                                FontSize="16"
-                                Padding="24,0"
-                                Margin="12,0,0,0"
-                                Click="ExportExcel_Click" Width="73"/>
+                        
+            <Button Content="◀"
+            Width="44"
+            Height="40"
+            Margin="0,0,10,0"
+            Background="#F3F4F6"
+            Foreground="{StaticResource TextPrimary}"
+            BorderThickness="1"
+            BorderBrush="{StaticResource BorderBrushSoft}"
+            Cursor="Hand"
+            Click="PrevMonth_Click"/>
+
+            
+            <Button Content="Bugün"
+            Height="40"
+            Padding="14,0"
+            Margin="0,0,10,0"
+            Background="#F3F4F6"
+            Foreground="{StaticResource TextPrimary}"
+            BorderThickness="1"
+            BorderBrush="{StaticResource BorderBrushSoft}"
+            Cursor="Hand"
+            Click="Today_Click"/>
+
+                        
+            <Button Content="▶"
+            Width="44"
+            Height="40"
+            Background="#F3F4F6"
+            Foreground="{StaticResource TextPrimary}"
+            BorderThickness="1"
+            BorderBrush="{StaticResource BorderBrushSoft}"
+            Cursor="Hand"
+            Click="NextMonth_Click"/>
+
                     </StackPanel>
                 </Grid>
 
