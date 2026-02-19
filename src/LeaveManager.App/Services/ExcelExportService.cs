@@ -68,7 +68,7 @@ namespace LeaveManager.App.Services
                 int planned = annualLeaves.Sum(l => l.Days);
 
                 sheet.Cell(row, 16).Value = planned;
-                sheet.Cell(row, 17).Value = 0; // balance logic yoksa 0
+                sheet.Cell(row, 17).Value = 0; 
 
                 row++;
             }

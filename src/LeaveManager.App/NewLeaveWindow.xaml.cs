@@ -2,7 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using LeaveManager.Data.Models;
-using LeaveManager.App.Services;   // 🔹 Artık Business değil
+using LeaveManager.App.Services;   
 
 namespace LeaveManager.App
 {

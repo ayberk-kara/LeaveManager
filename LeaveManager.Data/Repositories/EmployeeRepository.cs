@@ -71,27 +71,73 @@ namespace LeaveManager.Data.Repositories
             using var connection = new SqliteConnection(ConnectionString);
             connection.Open();
 
-            using var cmd = connection.CreateCommand();
-            cmd.CommandText = @"
-                INSERT INTO Employees
-                (sicil_no, full_name, role, manager_id, is_active)
-                VALUES
-                (@sicil_no, @full_name, @role, @manager_id, 1);
-            ";
-
-            cmd.Parameters.AddWithValue("@sicil_no", employee.SicilNo);
-            cmd.Parameters.AddWithValue("@full_name", employee.FullName);
-            cmd.Parameters.AddWithValue("@role", (int)employee.Role);
-            cmd.Parameters.AddWithValue("@manager_id",
-                employee.ManagerId.HasValue ? employee.ManagerId : DBNull.Value);
+            using var transaction = connection.BeginTransaction();
 
             try
             {
+                
+                using var cmd = connection.CreateCommand();
+                cmd.Transaction = transaction;
+
+                cmd.CommandText = @"
+            INSERT INTO Employees
+            (sicil_no, full_name, role, manager_id, is_active)
+            VALUES
+            (@sicil_no, @full_name, @role, @manager_id, 1);
+        ";
+
+                cmd.Parameters.AddWithValue("@sicil_no", employee.SicilNo);
+                cmd.Parameters.AddWithValue("@full_name", employee.FullName);
+                cmd.Parameters.AddWithValue("@role", (int)employee.Role);
+                cmd.Parameters.AddWithValue("@manager_id",
+                    employee.ManagerId.HasValue ? employee.ManagerId : DBNull.Value);
+
                 cmd.ExecuteNonQuery();
+
+                
+                long employeeId;
+
+                using (var idCmd = connection.CreateCommand())
+                {
+                    idCmd.Transaction = transaction;
+                    idCmd.CommandText = "SELECT last_insert_rowid();";
+
+                    object? result = idCmd.ExecuteScalar();
+
+                    if (result == null || result == DBNull.Value)
+                        throw new InvalidOperationException("Employee ID alınamadı.");
+
+                    employeeId = Convert.ToInt64(result);
+                }
+
+                
+                using (var balanceCmd = connection.CreateCommand())
+                {
+                    balanceCmd.Transaction = transaction;
+
+                    balanceCmd.CommandText = @"
+                INSERT OR IGNORE INTO LeaveBalances
+                (employee_id, year)
+                VALUES (@empId, @year);
+            ";
+
+                    balanceCmd.Parameters.AddWithValue("@empId", employeeId);
+                    balanceCmd.Parameters.AddWithValue("@year", DateTime.Now.Year);
+
+                    balanceCmd.ExecuteNonQuery();
+                }
+
+                transaction.Commit();
             }
             catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
             {
+                transaction.Rollback();
                 throw new InvalidOperationException("Bu sicil numarası zaten kayıtlı.");
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
             }
         }
 
@@ -185,6 +231,35 @@ namespace LeaveManager.Data.Repositories
             };
         }
 
+
+
+
+
+
+
+
+
+
+
+
+        private void CreateLeaveBalanceIfMissing(
+    SqliteConnection connection,
+    SqliteTransaction transaction,
+    int employeeId)
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = transaction;
+
+            cmd.CommandText = @"
+        INSERT OR IGNORE INTO LeaveBalances (employee_id, year)
+        VALUES (@empId, @year);
+    ";
+
+            cmd.Parameters.AddWithValue("@empId", employeeId);
+            cmd.Parameters.AddWithValue("@year", DateTime.Now.Year);
+
+            cmd.ExecuteNonQuery();
+        }
         // -----------------------------
         //  RESTORE DELETED METHOD
         // -----------------------------
@@ -197,103 +272,121 @@ namespace LeaveManager.Data.Repositories
             using var connection = new SqliteConnection(ConnectionString);
             connection.Open();
 
-            // Check if employee exists
-            using var checkCmd = connection.CreateCommand();
-            checkCmd.CommandText = @"
-        SELECT id, full_name, role, manager_id, is_active
-        FROM Employees
-        WHERE sicil_no = @sicil_no;
-    ";
-            checkCmd.Parameters.AddWithValue("@sicil_no", sicilNo);
+            using var transaction = connection.BeginTransaction();
 
-            using var reader = checkCmd.ExecuteReader();
-
-            if (reader.Read())
+            try
             {
-                int id = reader.GetInt32(0);
-                bool isActive = reader.GetInt32(4) == 1;
+                
+                using var checkCmd = connection.CreateCommand();
+                checkCmd.Transaction = transaction;
+                checkCmd.CommandText = @"
+            SELECT id, is_active
+            FROM Employees
+            WHERE sicil_no = @sicil_no;
+        ";
+                checkCmd.Parameters.AddWithValue("@sicil_no", sicilNo);
 
-                if (!isActive)
+                using var reader = checkCmd.ExecuteReader();
+
+                if (reader.Read())
                 {
+                    int id = reader.GetInt32(0);
+                    bool isActive = reader.GetInt32(1) == 1;
+
                     reader.Close();
 
-                    using var restoreCmd = connection.CreateCommand();
-                    restoreCmd.CommandText = @"
-                UPDATE Employees
-                SET full_name = @full_name,
-                    role = @role,
-                    manager_id = @manager_id,
-                    is_active = 1
-                WHERE id = @id;
-            ";
-
-                    restoreCmd.Parameters.AddWithValue("@full_name", fullName);
-                    restoreCmd.Parameters.AddWithValue("@role", (int)role);
-                    restoreCmd.Parameters.AddWithValue("@manager_id",
-                        managerId.HasValue ? managerId : DBNull.Value);
-                    restoreCmd.Parameters.AddWithValue("@id", id);
-
-                    restoreCmd.ExecuteNonQuery();
-
-                    var restoredEmployee = new Employee
+                    if (!isActive)
                     {
-                        Id = id,
-                        SicilNo = sicilNo,
-                        FullName = fullName,
-                        Role = role,
-                        ManagerId = managerId,
-                        IsActive = true
-                    };
+                        
+                        using var restoreCmd = connection.CreateCommand();
+                        restoreCmd.Transaction = transaction;
+                        restoreCmd.CommandText = @"
+                    UPDATE Employees
+                    SET full_name = @full_name,
+                        role = @role,
+                        manager_id = @manager_id,
+                        is_active = 1
+                    WHERE id = @id;
+                ";
 
-                    return (restoredEmployee, true);
-                }
-                else
-                {
+                        restoreCmd.Parameters.AddWithValue("@full_name", fullName);
+                        restoreCmd.Parameters.AddWithValue("@role", (int)role);
+                        restoreCmd.Parameters.AddWithValue("@manager_id",
+                            managerId.HasValue ? managerId : DBNull.Value);
+                        restoreCmd.Parameters.AddWithValue("@id", id);
+
+                        restoreCmd.ExecuteNonQuery();
+
+                        
+                        CreateLeaveBalanceIfMissing(connection, transaction, id);
+
+                        transaction.Commit();
+
+                        return (new Employee
+                        {
+                            Id = id,
+                            SicilNo = sicilNo,
+                            FullName = fullName,
+                            Role = role,
+                            ManagerId = managerId,
+                            IsActive = true
+                        }, true);
+                    }
+
                     throw new InvalidOperationException("Bu sicil numarası zaten kayıtlı.");
                 }
+
+                reader.Close();
+
+                
+                using var insertCmd = connection.CreateCommand();
+                insertCmd.Transaction = transaction;
+                insertCmd.CommandText = @"
+            INSERT INTO Employees (sicil_no, full_name, role, manager_id, is_active)
+            VALUES (@sicil_no, @full_name, @role, @manager_id, 1);
+        ";
+
+                insertCmd.Parameters.AddWithValue("@sicil_no", sicilNo);
+                insertCmd.Parameters.AddWithValue("@full_name", fullName);
+                insertCmd.Parameters.AddWithValue("@role", (int)role);
+                insertCmd.Parameters.AddWithValue("@manager_id",
+                    managerId.HasValue ? managerId : DBNull.Value);
+
+                insertCmd.ExecuteNonQuery();
+
+               
+                using var idCmd = connection.CreateCommand();
+                idCmd.Transaction = transaction;
+                idCmd.CommandText = "SELECT last_insert_rowid();";
+
+                object? result = idCmd.ExecuteScalar();
+                if (result == null || result == DBNull.Value)
+                    throw new InvalidOperationException("Yeni çalışan ID'si alınamadı.");
+
+                int newId = Convert.ToInt32(result);
+
+                
+                CreateLeaveBalanceIfMissing(connection, transaction, newId);
+
+                transaction.Commit();
+
+                return (new Employee
+                {
+                    Id = newId,
+                    SicilNo = sicilNo,
+                    FullName = fullName,
+                    Role = role,
+                    ManagerId = managerId,
+                    IsActive = true
+                }, false);
             }
-
-            reader.Close();
-
-            // Insert new employee
-            using var insertCmd = connection.CreateCommand();
-            insertCmd.CommandText = @"
-        INSERT INTO Employees (sicil_no, full_name, role, manager_id, is_active)
-        VALUES (@sicil_no, @full_name, @role, @manager_id, 1);
-    ";
-
-            insertCmd.Parameters.AddWithValue("@sicil_no", sicilNo);
-            insertCmd.Parameters.AddWithValue("@full_name", fullName);
-            insertCmd.Parameters.AddWithValue("@role", (int)role);
-            insertCmd.Parameters.AddWithValue("@manager_id",
-                managerId.HasValue ? managerId : DBNull.Value);
-
-            insertCmd.ExecuteNonQuery();
-
-            // Get last inserted id (SAFE)
-            using var lastIdCmd = connection.CreateCommand();
-            lastIdCmd.CommandText = "SELECT last_insert_rowid();";
-
-            var result = lastIdCmd.ExecuteScalar();
-
-            if (result == null)
-                throw new InvalidOperationException("Yeni çalışan ID'si alınamadı.");
-
-            long newId = Convert.ToInt64(result);
-
-            var newEmployee = new Employee
+            catch
             {
-                Id = (int)newId,
-                SicilNo = sicilNo,
-                FullName = fullName,
-                Role = role,
-                ManagerId = managerId,
-                IsActive = true
-            };
-
-            return (newEmployee, false);
+                transaction.Rollback();
+                throw;
+            }
         }
-    
+
     }
 }
     

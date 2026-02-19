@@ -68,7 +68,8 @@ namespace LeaveManager.App
         {
             int currentYear = DateTime.Now.Year;
 
-            using var connection = new SqliteConnection(DbPaths.GetDbFilePath());
+            using var connection = new SqliteConnection(
+     $"Data Source={DbPaths.GetDbFilePath()}");
             connection.Open();
 
             _currentBalance = _balanceRepository.GetByEmployeeAndYear(connection, _employeeId, currentYear);
@@ -115,8 +116,9 @@ namespace LeaveManager.App
 
             if (_currentBalance != null)
             {
-                
-                using var connection = new SqliteConnection(DbPaths.GetDbFilePath());
+
+                using var connection = new SqliteConnection(
+     $"Data Source={DbPaths.GetDbFilePath()}");
                 connection.Open();
                 using var tx = connection.BeginTransaction();
 
