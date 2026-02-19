@@ -225,10 +225,16 @@ namespace LeaveManager.App.Services
             if (balance == null)
                 throw new Exception("Balance bulunamadı.");
 
-            if (leave.Type == "Annual")
+            if (leave.Type.Equals("Yıllık", StringComparison.OrdinalIgnoreCase)
+    || leave.Type.Equals("Annual", StringComparison.OrdinalIgnoreCase))
+            {
                 balance.AnnualUsed += leave.Days;
-            else if (leave.Type == "Sick")
+            }
+            else if (leave.Type.Equals("Hastalık", StringComparison.OrdinalIgnoreCase)
+                     || leave.Type.Equals("Sick", StringComparison.OrdinalIgnoreCase))
+            {
                 balance.SickUsed += leave.Days;
+            }
 
             _balanceRepository.Update(connection, tx, balance);
         }
