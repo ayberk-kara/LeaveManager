@@ -66,8 +66,8 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        
-        
+
+
 
         <!-- TextBox -->
         <Style x:Key="SmoothTextBoxStyle" TargetType="TextBox">
@@ -132,7 +132,6 @@
             <Setter Property="FontSize" Value="14"/>
         </Style>
 
-        <!-- Highlight leave days (the ONLY visual indicator we keep) -->
         <Style x:Key="LeaveDayButtonStyle" TargetType="CalendarDayButton">
             <Setter Property="Margin" Value="2"/>
             <Setter Property="FontSize" Value="14"/>
@@ -154,21 +153,18 @@
                                 <Setter TargetName="Bd" Property="Opacity" Value="0.35"/>
                             </Trigger>
 
-                            <!-- ✅ Today highlight kaldırıldı (hiç işaretleme yok) -->
-
-                            <!-- Keep click selection subtle -->
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource BorderBrushSoft}"/>
                                 <Setter TargetName="Bd" Property="Background" Value="#F3F4F6"/>
                             </Trigger>
 
-                            <!-- ✅ Leave days highlight -->
+                            
                             <DataTrigger Value="True">
                                 <DataTrigger.Binding>
                                     <MultiBinding Converter="{StaticResource LeaveDayHighlightConverter}">
-                                        <!-- Calendar day itself (DateTime) -->
+                                       
                                         <Binding />
-                                        <!-- ✅ ViewModel property (DataContext üzerinden) -->
+                                        
                                         <Binding ElementName="RootWindow" Path="DataContext.SelectedEmployeeLeaveDays"/>
 
 
@@ -226,7 +222,7 @@
                             MinWidth="120"
                             Padding="20,0"
                             Click="NewEmployee_Click"/>
-                        </Grid>
+                </Grid>
                 <TextBlock Grid.Row="2"
                            Text="Arama"
                            FontSize="12"
@@ -357,19 +353,19 @@
 
                         <Button Content="Yeni izin"
                                 Style="{StaticResource PrimaryButtonStyle}"
-                                Height="52"
-                                MinWidth="170"
+                                Height="40"
+                                MinWidth="160"
                                 FontSize="16"
                                 Padding="24,0"
-                                Click="NewLeave_Click"/>
+                                Click="NewLeave_Click" Width="54"/>
                         <Button Content="Excel'e Aktar"
                                 Style="{StaticResource PrimaryButtonStyle}"
-                                Height="52"
-                                MinWidth="170"
+                                Height="40"
+                                MinWidth="160"
                                 FontSize="16"
                                 Padding="24,0"
                                 Margin="12,0,0,0"
-                                Click="ExportExcel_Click"/>
+                                Click="ExportExcel_Click" Width="73"/>
                     </StackPanel>
                 </Grid>
 

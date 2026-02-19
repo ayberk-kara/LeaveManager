@@ -29,7 +29,7 @@ namespace LeaveManager.App.Services
                 new NoPastStartRule(),
                 new NoOverlapRule(),
                 new LongLeaveGapRule(),
-               
+
             };
         }
 
@@ -47,7 +47,7 @@ namespace LeaveManager.App.Services
                 if (employee is null)
                 {
                     errorMessage = "Çalışan bulunamadı.";
-                    tx.Rollback(); 
+                    tx.Rollback();
                     return false;
                 }
 
@@ -60,7 +60,7 @@ namespace LeaveManager.App.Services
                 {
                     if (!rule.Validate(employee, allEmployees, existingLeaves, newLeave, out errorMessage))
                     {
-                        tx.Rollback(); 
+                        tx.Rollback();
                         return false;
                     }
                 }
@@ -77,7 +77,15 @@ namespace LeaveManager.App.Services
                     if (balance == null)
                         throw new Exception("Balance bulunamadı.");
 
-                    if (leavePart.Type == "Annual")
+                    bool isAnnual =
+                        leavePart.Type.Equals("Yıllık", StringComparison.OrdinalIgnoreCase) ||
+                        leavePart.Type.Equals("Annual", StringComparison.OrdinalIgnoreCase);
+
+                    bool isSick =
+                        leavePart.Type.Equals("Hastalık", StringComparison.OrdinalIgnoreCase) ||
+                        leavePart.Type.Equals("Sick", StringComparison.OrdinalIgnoreCase);
+
+                    if (isAnnual)
                     {
                         int remaining =
                             balance.AnnualEntitled +
@@ -87,11 +95,11 @@ namespace LeaveManager.App.Services
                         if (leavePart.Days > remaining)
                         {
                             errorMessage = $"Yetersiz yıllık izin bakiyesi. Kalan: {remaining}";
-                            tx.Rollback(); 
+                            tx.Rollback();
                             return false;
                         }
                     }
-                    else if (leavePart.Type == "Sick")
+                    else if (isSick)
                     {
                         int remaining =
                             balance.SickEntitled +
@@ -101,7 +109,7 @@ namespace LeaveManager.App.Services
                         if (leavePart.Days > remaining)
                         {
                             errorMessage = $"Yetersiz hastalık izni bakiyesi. Kalan: {remaining}";
-                            tx.Rollback(); 
+                            tx.Rollback();
                             return false;
                         }
                     }
@@ -116,7 +124,7 @@ namespace LeaveManager.App.Services
             }
             catch (Exception ex)
             {
-                tx.Rollback(); 
+                tx.Rollback();
                 errorMessage = ex.Message;
                 return false;
             }
@@ -208,7 +216,6 @@ namespace LeaveManager.App.Services
                 SickManualAdjust = 0
             });
 
-          
             _balanceRepository.Delete(connection, tx, employeeId, year - 2);
         }
 
@@ -226,7 +233,7 @@ namespace LeaveManager.App.Services
                 throw new Exception("Balance bulunamadı.");
 
             if (leave.Type.Equals("Yıllık", StringComparison.OrdinalIgnoreCase)
-    || leave.Type.Equals("Annual", StringComparison.OrdinalIgnoreCase))
+                || leave.Type.Equals("Annual", StringComparison.OrdinalIgnoreCase))
             {
                 balance.AnnualUsed += leave.Days;
             }
