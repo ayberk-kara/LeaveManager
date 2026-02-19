@@ -68,7 +68,8 @@ namespace LeaveManager.App.Services
                 int planned = annualLeaves.Sum(l => l.Days);
 
                 sheet.Cell(row, 16).Value = planned;
-                sheet.Cell(row, 17).Value = 0; 
+                int remaining = GetRemainingAnnualLeave(connection, employee.Id, year);
+                sheet.Cell(row, 17).Value = remaining;
 
                 row++;
             }
