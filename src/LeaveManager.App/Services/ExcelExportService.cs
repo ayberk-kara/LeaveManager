@@ -35,14 +35,25 @@ namespace LeaveManager.App.Services
             int index = 1;
 
             var connectionString = $"Data Source={DbPaths.GetDbFilePath()}";
-
             using var connection = new SqliteConnection(connectionString);
             connection.Open();
+
+            // 🔹 ManagerId bazlı renk haritası
+            var managerColors = GenerateManagerColors(employees);
+
+            var monthlyTotals = new int[12];
+            int grandTotal = 0;
+            int grandPlanned = 0;
+            int grandRemaining = 0;
 
             foreach (var employee in employees)
             {
                 sheet.Cell(row, 1).Value = index++;
                 sheet.Cell(row, 2).Value = employee.FullName;
+
+                // 🔹 Satır renklendirme
+                var managerKey = employee.ManagerId ?? 0;
+                ApplyRowColor(sheet, row, managerColors[managerKey]);
 
                 var leaves = _leaveRepository.GetByEmployeeId(connection, employee.Id);
 
@@ -52,72 +63,102 @@ namespace LeaveManager.App.Services
                     .ToList();
 
                 var monthly = BuildMonthlySummary(annualLeaves, year);
-
                 int yearlyTotal = CalculateYearlyTotalDays(annualLeaves, year);
+
                 sheet.Cell(row, 3).Value = yearlyTotal;
+                grandTotal += yearlyTotal;
 
                 for (int month = 1; month <= 12; month++)
                 {
-                    sheet.Cell(row, month + 3).Value =
-                        monthly.ContainsKey(month)
-                            ? monthly[month]
-                            : string.Empty;
+                    if (monthly.ContainsKey(month))
+                    {
+                        sheet.Cell(row, month + 3).Value = monthly[month];
+                        monthlyTotals[month - 1] += ExtractDaysFromText(monthly[month]);
+                    }
 
                     sheet.Cell(row, month + 3).Style.Alignment.WrapText = true;
                 }
 
                 sheet.Cell(row, 16).Value = yearlyTotal;
+                grandPlanned += yearlyTotal;
 
                 int remaining = GetRemainingAnnualLeave(connection, employee.Id, year);
                 sheet.Cell(row, 17).Value = remaining;
+                grandRemaining += remaining;
 
                 row++;
             }
+
+            // 🔹 TOPLAM SATIRI
+            sheet.Cell(row, 2).Value = "TOPLAM";
+            sheet.Cell(row, 2).Style.Font.Bold = true;
+
+            sheet.Cell(row, 3).Value = grandTotal;
+
+            for (int i = 0; i < 12; i++)
+                sheet.Cell(row, i + 4).Value = monthlyTotals[i];
+
+            sheet.Cell(row, 16).Value = grandPlanned;
+            sheet.Cell(row, 17).Value = grandRemaining;
+
+            sheet.Range(row, 1, row, 17).Style.Font.Bold = true;
+            sheet.Range(row, 1, row, 17).Style.Fill.BackgroundColor = XLColor.LightGray;
 
             sheet.Columns().AdjustToContents();
             workbook.SaveAs(dialog.FileName);
         }
 
-        private static void WriteHeader(IXLWorksheet sheet, int year)
+        // 🔹 ManagerId bazlı renk üretimi
+        private static Dictionary<int, XLColor> GenerateManagerColors(IEnumerable<EmployeeItem> employees)
         {
-            string[] headers =
+            var managers = employees
+                .Select(e => e.ManagerId ?? 0)
+                .Distinct()
+                .ToList();
+
+            var palette = new[]
             {
-                "SAYI","ADI SOYAD","TOPLAM İZİN",
-                "OCAK","ŞUBAT","MART","NİSAN","MAYIS","HAZİRAN",
-                "TEMMUZ","AĞUSTOS","EYLÜL","EKİM","KASIM","ARALIK",
-                $"{year} PLAN","KALAN"
+                XLColor.FromHtml("#D9EAD3"),
+                XLColor.FromHtml("#CFE2F3"),
+                XLColor.FromHtml("#FCE5CD"),
+                XLColor.FromHtml("#EAD1DC"),
+                XLColor.FromHtml("#FFF2CC")
             };
 
-            for (int i = 0; i < headers.Length; i++)
-            {
-                sheet.Cell(1, i + 1).Value = headers[i];
-                sheet.Cell(1, i + 1).Style.Font.Bold = true;
-            }
+            var result = new Dictionary<int, XLColor>();
+
+            for (int i = 0; i < managers.Count; i++)
+                result[managers[i]] = palette[i % palette.Length];
+
+            return result;
         }
 
-        private int GetRemainingAnnualLeave(SqliteConnection connection, int employeeId, int year)
+        private static void ApplyRowColor(IXLWorksheet sheet, int row, XLColor color)
         {
-            using var cmd = connection.CreateCommand();
-            cmd.CommandText = @"
-                SELECT annual_entitled, annual_used
-                FROM LeaveBalances
-                WHERE employee_id = @empId AND year = @year;
-            ";
+            sheet.Range(row, 1, row, 17).Style.Fill.BackgroundColor = color;
+        }
 
-            cmd.Parameters.AddWithValue("@empId", employeeId);
-            cmd.Parameters.AddWithValue("@year", year);
+        private static int ExtractDaysFromText(string text)
+        {
+            int total = 0;
+            var lines = text.Split(Environment.NewLine);
 
-            using var reader = cmd.ExecuteReader();
-
-            if (reader.Read())
+            foreach (var line in lines)
             {
-                int entitled = reader.GetInt32(0);
-                int used = reader.GetInt32(1);
-                return entitled - used;
+                var start = line.IndexOf("(");
+                var end = line.IndexOf(")");
+                if (start >= 0 && end > start)
+                {
+                    var numberPart = line.Substring(start + 1, end - start - 1);
+                    if (int.TryParse(numberPart.Split(' ')[0], out int days))
+                        total += days;
+                }
             }
 
-            return 0;
+            return total;
         }
+
+        // 🔹 Önceki doğru çalışan metodlar
 
         private static Dictionary<int, string> BuildMonthlySummary(
             IEnumerable<Data.Models.Leave> leaves,
@@ -187,6 +228,47 @@ namespace LeaveManager.App.Services
             }
 
             return total;
+        }
+
+        private int GetRemainingAnnualLeave(SqliteConnection connection, int employeeId, int year)
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+                SELECT annual_entitled, annual_used
+                FROM LeaveBalances
+                WHERE employee_id = @empId AND year = @year;
+            ";
+
+            cmd.Parameters.AddWithValue("@empId", employeeId);
+            cmd.Parameters.AddWithValue("@year", year);
+
+            using var reader = cmd.ExecuteReader();
+
+            if (reader.Read())
+            {
+                int entitled = reader.GetInt32(0);
+                int used = reader.GetInt32(1);
+                return entitled - used;
+            }
+
+            return 0;
+        }
+
+        private static void WriteHeader(IXLWorksheet sheet, int year)
+        {
+            string[] headers =
+            {
+                "S. N.","ADI SOYAD","TOPLAM İZİN",
+                "OCAK","ŞUBAT","MART","NİSAN","MAYIS","HAZİRAN",
+                "TEMMUZ","AĞUSTOS","EYLÜL","EKİM","KASIM","ARALIK",
+                $"{year} PLAN","KALAN"
+            };
+
+            for (int i = 0; i < headers.Length; i++)
+            {
+                sheet.Cell(1, i + 1).Value = headers[i];
+                sheet.Cell(1, i + 1).Style.Font.Bold = true;
+            }
         }
     }
 }
