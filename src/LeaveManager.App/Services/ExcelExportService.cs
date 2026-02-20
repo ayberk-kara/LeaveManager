@@ -48,12 +48,13 @@ namespace LeaveManager.App.Services
 
                 var annualLeaves = leaves
                     .Where(l => l.Type.ToLower().Contains("yıllık")
-                                && l.StartDate.Year == year)
+                                && (l.StartDate.Year <= year && l.EndDate.Year >= year))
                     .ToList();
 
-                sheet.Cell(row, 3).Value = annualLeaves.Sum(l => l.Days);
+                var monthly = BuildMonthlySummary(annualLeaves, year);
 
-                var monthly = BuildMonthlySummary(annualLeaves);
+                int yearlyTotal = CalculateYearlyTotalDays(annualLeaves, year);
+                sheet.Cell(row, 3).Value = yearlyTotal;
 
                 for (int month = 1; month <= 12; month++)
                 {
@@ -65,9 +66,8 @@ namespace LeaveManager.App.Services
                     sheet.Cell(row, month + 3).Style.Alignment.WrapText = true;
                 }
 
-                int planned = annualLeaves.Sum(l => l.Days);
+                sheet.Cell(row, 16).Value = yearlyTotal;
 
-                sheet.Cell(row, 16).Value = planned;
                 int remaining = GetRemainingAnnualLeave(connection, employee.Id, year);
                 sheet.Cell(row, 17).Value = remaining;
 
@@ -99,10 +99,10 @@ namespace LeaveManager.App.Services
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = @"
-        SELECT annual_entitled, annual_used
-        FROM LeaveBalances
-        WHERE employee_id = @empId AND year = @year;
-    ";
+                SELECT annual_entitled, annual_used
+                FROM LeaveBalances
+                WHERE employee_id = @empId AND year = @year;
+            ";
 
             cmd.Parameters.AddWithValue("@empId", employeeId);
             cmd.Parameters.AddWithValue("@year", year);
@@ -119,24 +119,74 @@ namespace LeaveManager.App.Services
             return 0;
         }
 
-        private static Dictionary<int, string> BuildMonthlySummary(IEnumerable<Data.Models.Leave> leaves)
+        private static Dictionary<int, string> BuildMonthlySummary(
+            IEnumerable<Data.Models.Leave> leaves,
+            int year)
         {
             var result = new Dictionary<int, string>();
 
             foreach (var leave in leaves)
             {
-                int month = leave.StartDate.Month;
+                var start = leave.StartDate;
+                var end = leave.EndDate;
 
-                string text =
-                    $"{leave.StartDate:dd}-{leave.EndDate:dd} ({leave.Days}) Gün";
+                if (start.Year < year)
+                    start = new DateTime(year, 1, 1);
 
-                if (result.ContainsKey(month))
-                    result[month] += Environment.NewLine + text;
-                else
-                    result[month] = text;
+                if (end.Year > year)
+                    end = new DateTime(year, 12, 31);
+
+                var current = start;
+
+                while (current <= end)
+                {
+                    int month = current.Month;
+
+                    var monthStart = new DateTime(current.Year, current.Month, 1);
+                    var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+                    var rangeStart = current;
+                    var rangeEnd = end < monthEnd ? end : monthEnd;
+
+                    int days = (rangeEnd - rangeStart).Days + 1;
+
+                    string text =
+                        $"{rangeStart:dd}-{rangeEnd:dd} ({days}) Gün";
+
+                    if (result.ContainsKey(month))
+                        result[month] += Environment.NewLine + text;
+                    else
+                        result[month] = text;
+
+                    current = rangeEnd.AddDays(1);
+                }
             }
 
             return result;
+        }
+
+        private static int CalculateYearlyTotalDays(
+            IEnumerable<Data.Models.Leave> leaves,
+            int year)
+        {
+            int total = 0;
+
+            foreach (var leave in leaves)
+            {
+                var start = leave.StartDate;
+                var end = leave.EndDate;
+
+                if (start.Year < year)
+                    start = new DateTime(year, 1, 1);
+
+                if (end.Year > year)
+                    end = new DateTime(year, 12, 31);
+
+                if (start <= end)
+                    total += (end - start).Days + 1;
+            }
+
+            return total;
         }
     }
 }
