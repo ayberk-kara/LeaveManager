@@ -29,6 +29,16 @@ VALUES
             cmd.ExecuteNonQuery();
         }
 
+
+        public void Delete(SqliteConnection connection, SqliteTransaction tx, int leaveId)
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "DELETE FROM Leaves WHERE id = @id;";
+            cmd.Parameters.AddWithValue("@id", leaveId);
+            cmd.ExecuteNonQuery();
+        }
+
         public List<Leave> GetByEmployeeId(SqliteConnection connection, int employeeId)
         {
             var result = new List<Leave>();
