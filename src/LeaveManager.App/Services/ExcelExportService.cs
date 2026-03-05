@@ -46,50 +46,98 @@ namespace LeaveManager.App.Services
             int grandPlanned = 0;
             int grandRemaining = 0;
 
-            foreach (var employee in employees)
+            var managerGroups = employees
+    .Where(e => e.Role == EmployeeRole.Assistant)
+    .OrderBy(e => e.FullName)
+    .Select(my => new
+    {
+        Manager = my,
+        Subordinates = employees
+            .Where(emp => emp.ManagerId == my.Id)
+            .OrderBy(emp => emp.FullName)
+            .ToList()
+    })
+    .ToList();
+
+            foreach (var group in managerGroups)
             {
+                var my = group.Manager;
                 sheet.Cell(row, 1).Value = index++;
+                sheet.Cell(row, 2).Value = my.FullName + " (M.Y.)";
 
-                string displayName = employee.FullName;
-                if (employee.Role == EmployeeRole.Assistant)
-                    displayName += " (M.Y.)";
-
-                sheet.Cell(row, 2).Value = displayName;
-
-                int managerKey = employee.ManagerId ?? employee.Id;
+                int managerKey = my.Id;
                 ApplyRowColor(sheet, row, managerColors[managerKey]);
 
-                var leaves = _leaveRepository.GetByEmployeeId(connection, employee.Id);
-
-                var annualLeaves = leaves
+                var leavesMy = _leaveRepository.GetByEmployeeId(connection, my.Id);
+                var annualLeavesMy = leavesMy
                     .Where(l => l.Type.ToLower().Contains("yıllık")
                                 && (l.StartDate.Year <= year && l.EndDate.Year >= year))
                     .ToList();
 
-                var monthly = BuildMonthlySummary(annualLeaves, year);
-                int yearlyTotal = CalculateYearlyTotalDays(annualLeaves, year);
+                var monthlyMy = BuildMonthlySummary(annualLeavesMy, year);
+                int yearlyTotalMy = CalculateYearlyTotalDays(annualLeavesMy, year);
 
-                sheet.Cell(row, 3).Value = yearlyTotal;
-                grandTotal += yearlyTotal;
+                sheet.Cell(row, 3).Value = yearlyTotalMy;
+                grandTotal += yearlyTotalMy;
 
                 for (int month = 1; month <= 12; month++)
                 {
-                    if (monthly.ContainsKey(month))
+                    if (monthlyMy.ContainsKey(month))
                     {
-                        sheet.Cell(row, month + 3).Value = monthly[month];
-                        monthlyTotals[month - 1] += ExtractDaysFromText(monthly[month]);
+                        sheet.Cell(row, month + 3).Value = monthlyMy[month];
+                        monthlyTotals[month - 1] += ExtractDaysFromText(monthlyMy[month]);
                     }
                     sheet.Cell(row, month + 3).Style.Alignment.WrapText = true;
                 }
 
-                sheet.Cell(row, 16).Value = yearlyTotal;
-                grandPlanned += yearlyTotal;
+                sheet.Cell(row, 16).Value = yearlyTotalMy;
+                grandPlanned += yearlyTotalMy;
 
-                int remaining = GetCorrectRemainingAnnualLeave(connection, employee.Id, year);
-                sheet.Cell(row, 17).Value = remaining;
-                grandRemaining += remaining;
+                int remainingMy = GetCorrectRemainingAnnualLeave(connection, my.Id, year);
+                sheet.Cell(row, 17).Value = remainingMy;
+                grandRemaining += remainingMy;
 
                 row++;
+
+                foreach (var emp in group.Subordinates)
+                {
+                    sheet.Cell(row, 1).Value = index++;
+                    sheet.Cell(row, 2).Value = emp.FullName;
+
+                    int empKey = emp.Id;
+                    ApplyRowColor(sheet, row, managerColors[empKey]);
+
+                    var leavesEmp = _leaveRepository.GetByEmployeeId(connection, emp.Id);
+                    var annualLeavesEmp = leavesEmp
+                        .Where(l => l.Type.ToLower().Contains("yıllık")
+                                    && (l.StartDate.Year <= year && l.EndDate.Year >= year))
+                        .ToList();
+
+                    var monthlyEmp = BuildMonthlySummary(annualLeavesEmp, year);
+                    int yearlyTotalEmp = CalculateYearlyTotalDays(annualLeavesEmp, year);
+
+                    sheet.Cell(row, 3).Value = yearlyTotalEmp;
+                    grandTotal += yearlyTotalEmp;
+
+                    for (int month = 1; month <= 12; month++)
+                    {
+                        if (monthlyEmp.ContainsKey(month))
+                        {
+                            sheet.Cell(row, month + 3).Value = monthlyEmp[month];
+                            monthlyTotals[month - 1] += ExtractDaysFromText(monthlyEmp[month]);
+                        }
+                        sheet.Cell(row, month + 3).Style.Alignment.WrapText = true;
+                    }
+
+                    sheet.Cell(row, 16).Value = yearlyTotalEmp;
+                    grandPlanned += yearlyTotalEmp;
+
+                    int remainingEmp = GetCorrectRemainingAnnualLeave(connection, emp.Id, year);
+                    sheet.Cell(row, 17).Value = remainingEmp;
+                    grandRemaining += remainingEmp;
+
+                    row++;
+                }
             }
 
             sheet.Cell(row, 2).Value = "TOPLAM";
