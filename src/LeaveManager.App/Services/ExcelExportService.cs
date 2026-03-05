@@ -1,8 +1,9 @@
 ﻿using ClosedXML.Excel;
 using LeaveManager.App;
+using LeaveManager.App.Services;
 using LeaveManager.Data.Repositories;
 using LeaveManager.Data.Storage;
-using LeaveManager.App.Services;
+using LeaveManager.Models;
 using Microsoft.Data.Sqlite;
 using Microsoft.Win32;
 using System;
@@ -38,7 +39,6 @@ namespace LeaveManager.App.Services
             using var connection = new SqliteConnection(connectionString);
             connection.Open();
 
-            
             var managerColors = GenerateManagerColors(employees);
 
             var monthlyTotals = new int[12];
@@ -49,10 +49,14 @@ namespace LeaveManager.App.Services
             foreach (var employee in employees)
             {
                 sheet.Cell(row, 1).Value = index++;
-                sheet.Cell(row, 2).Value = employee.FullName;
 
-                
-                var managerKey = employee.ManagerId ?? 0;
+                string displayName = employee.FullName;
+                if (employee.Role == EmployeeRole.Assistant)
+                    displayName += " (M.Y.)";
+
+                sheet.Cell(row, 2).Value = displayName;
+
+                int managerKey = employee.ManagerId ?? employee.Id;
                 ApplyRowColor(sheet, row, managerColors[managerKey]);
 
                 var leaves = _leaveRepository.GetByEmployeeId(connection, employee.Id);
@@ -75,24 +79,21 @@ namespace LeaveManager.App.Services
                         sheet.Cell(row, month + 3).Value = monthly[month];
                         monthlyTotals[month - 1] += ExtractDaysFromText(monthly[month]);
                     }
-
                     sheet.Cell(row, month + 3).Style.Alignment.WrapText = true;
                 }
 
                 sheet.Cell(row, 16).Value = yearlyTotal;
                 grandPlanned += yearlyTotal;
 
-                int remaining = GetRemainingAnnualLeave(connection, employee.Id, year);
+                int remaining = GetCorrectRemainingAnnualLeave(connection, employee.Id, year);
                 sheet.Cell(row, 17).Value = remaining;
                 grandRemaining += remaining;
 
                 row++;
             }
 
-            
             sheet.Cell(row, 2).Value = "TOPLAM";
             sheet.Cell(row, 2).Style.Font.Bold = true;
-
             sheet.Cell(row, 3).Value = grandTotal;
 
             for (int i = 0; i < 12; i++)
@@ -106,18 +107,17 @@ namespace LeaveManager.App.Services
 
             sheet.Columns().AdjustToContents();
             var tableRange = sheet.Range(1, 1, row, 17);
-
             tableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             tableRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
             workbook.SaveAs(dialog.FileName);
         }
 
-        
         private static Dictionary<int, XLColor> GenerateManagerColors(IEnumerable<EmployeeItem> employees)
         {
-            var managers = employees
-                .Select(e => e.ManagerId ?? 0)
-                .Distinct()
+            var managerIds = employees
+                .Where(e => e.Role == EmployeeRole.Assistant)
+                .Select(e => e.Id)
                 .ToList();
 
             var palette = new[]
@@ -131,8 +131,18 @@ namespace LeaveManager.App.Services
 
             var result = new Dictionary<int, XLColor>();
 
-            for (int i = 0; i < managers.Count; i++)
-                result[managers[i]] = palette[i % palette.Length];
+            int colorIndex = 0;
+            foreach (var managerId in managerIds)
+            {
+                var color = palette[colorIndex % palette.Length];
+                result[managerId] = color;
+
+                var subordinates = employees.Where(e => e.ManagerId == managerId);
+                foreach (var emp in subordinates)
+                    result[emp.Id] = color;
+
+                colorIndex++;
+            }
 
             return result;
         }
@@ -162,11 +172,7 @@ namespace LeaveManager.App.Services
             return total;
         }
 
-        
-
-        private static Dictionary<int, string> BuildMonthlySummary(
-            IEnumerable<Data.Models.Leave> leaves,
-            int year)
+        private static Dictionary<int, string> BuildMonthlySummary(IEnumerable<Data.Models.Leave> leaves, int year)
         {
             var result = new Dictionary<int, string>();
 
@@ -186,7 +192,6 @@ namespace LeaveManager.App.Services
                 while (current <= end)
                 {
                     int month = current.Month;
-
                     var monthStart = new DateTime(current.Year, current.Month, 1);
                     var monthEnd = monthStart.AddMonths(1).AddDays(-1);
 
@@ -194,9 +199,7 @@ namespace LeaveManager.App.Services
                     var rangeEnd = end < monthEnd ? end : monthEnd;
 
                     int days = (rangeEnd - rangeStart).Days + 1;
-
-                    string text =
-                        $"{rangeStart:dd}-{rangeEnd:dd} ({days}) Gün";
+                    string text = $"{rangeStart:dd}-{rangeEnd:dd} ({days}) Gün";
 
                     if (result.ContainsKey(month))
                         result[month] += Environment.NewLine + text;
@@ -210,9 +213,7 @@ namespace LeaveManager.App.Services
             return result;
         }
 
-        private static int CalculateYearlyTotalDays(
-            IEnumerable<Data.Models.Leave> leaves,
-            int year)
+        private static int CalculateYearlyTotalDays(IEnumerable<Data.Models.Leave> leaves, int year)
         {
             int total = 0;
 
@@ -234,14 +235,14 @@ namespace LeaveManager.App.Services
             return total;
         }
 
-        private int GetRemainingAnnualLeave(SqliteConnection connection, int employeeId, int year)
+        private int GetCorrectRemainingAnnualLeave(SqliteConnection connection, int employeeId, int year)
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = @"
-        SELECT annual_entitled, annual_used, annual_manual_adjust
-        FROM LeaveBalances
-        WHERE employee_id = @empId AND year = @year;
-    ";
+                SELECT annual_entitled, annual_used, annual_manual_adjust
+                FROM LeaveBalances
+                WHERE employee_id = @empId AND year = @year;
+            ";
 
             cmd.Parameters.AddWithValue("@empId", employeeId);
             cmd.Parameters.AddWithValue("@year", year);
@@ -254,7 +255,7 @@ namespace LeaveManager.App.Services
                 int used = reader.GetInt32(1);
                 int adjust = reader.GetInt32(2);
 
-                return entitled + adjust - used;
+                return (entitled + adjust - used); 
             }
 
             return 0;
