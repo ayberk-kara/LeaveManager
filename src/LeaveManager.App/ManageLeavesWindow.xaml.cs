@@ -13,7 +13,7 @@ namespace LeaveManager.App
     {
         private readonly LeaveRepository _leaveRepository = new();
         private readonly int _employeeId;
-        private List<Leave> _leaves = new();
+        private List<SelectableLeave> _leaves = new();
 
         public ManageLeavesWindow(int employeeId, string employeeName)
         {
@@ -29,20 +29,18 @@ namespace LeaveManager.App
             using var connection = new SqliteConnection(connectionString);
             connection.Open();
 
-            _leaves = _leaveRepository.GetByEmployeeId(connection, _employeeId).ToList();
+            var leaves = _leaveRepository.GetByEmployeeId(connection, _employeeId);
 
-            var items = _leaves.Select(l => new
-            {
-                Leave = l,
-                DisplayText = $"{l.Type} | {l.StartDate:dd/MM/yyyy} - {l.EndDate:dd/MM/yyyy} ({(l.EndDate - l.StartDate).Days + 1} gün)"
-            }).ToList();
+            _leaves = leaves.Select(l => new SelectableLeave { Leave = l, IsSelected = false }).ToList();
 
-            lstLeaves.ItemsSource = items;
+            lvLeaves.ItemsSource = _leaves;
         }
 
         private void Delete_Click(object sender, RoutedEventArgs e)
         {
-            if (lstLeaves.SelectedItems.Count == 0)
+            var selectedLeaves = _leaves.Where(l => l.IsSelected).Select(l => l.Leave).ToList();
+
+            if (!selectedLeaves.Any())
             {
                 MessageBox.Show("Silmek için izin seçiniz.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
@@ -51,15 +49,13 @@ namespace LeaveManager.App
             if (MessageBox.Show("Seçili izinler silinsin mi?", "Onay", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 return;
 
-            var selectedLeaves = lstLeaves.SelectedItems.Cast<dynamic>().Select(x => x.Leave).ToList();
-
             var connectionString = $"Data Source={DbPaths.GetDbFilePath()}";
             using var connection = new SqliteConnection(connectionString);
             connection.Open();
             using var tx = connection.BeginTransaction();
 
             foreach (var leave in selectedLeaves)
-                _leaveRepository.Delete(connection, tx, leave.Id); 
+                _leaveRepository.Delete(connection, tx, leave.Id);
 
             tx.Commit();
 
@@ -69,6 +65,13 @@ namespace LeaveManager.App
         private void Close_Click(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        // Wrapper sınıf: ListView'de checkbox ile bağlanacak
+        private class SelectableLeave
+        {
+            public Leave Leave { get; set; } = null!;
+            public bool IsSelected { get; set; }
         }
     }
 }
