@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Personel Düzenle"
         Width="575"
-        Height="760"
+        Height="899"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="#F5F6F8">

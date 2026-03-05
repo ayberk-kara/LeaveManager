@@ -38,7 +38,7 @@ namespace LeaveManager.App.Services
             using var connection = new SqliteConnection(connectionString);
             connection.Open();
 
-            // 🔹 ManagerId bazlı renk haritası
+            
             var managerColors = GenerateManagerColors(employees);
 
             var monthlyTotals = new int[12];
@@ -51,7 +51,7 @@ namespace LeaveManager.App.Services
                 sheet.Cell(row, 1).Value = index++;
                 sheet.Cell(row, 2).Value = employee.FullName;
 
-                // 🔹 Satır renklendirme
+                
                 var managerKey = employee.ManagerId ?? 0;
                 ApplyRowColor(sheet, row, managerColors[managerKey]);
 
@@ -89,7 +89,7 @@ namespace LeaveManager.App.Services
                 row++;
             }
 
-            // 🔹 TOPLAM SATIRI
+            
             sheet.Cell(row, 2).Value = "TOPLAM";
             sheet.Cell(row, 2).Style.Font.Bold = true;
 
@@ -108,7 +108,7 @@ namespace LeaveManager.App.Services
             workbook.SaveAs(dialog.FileName);
         }
 
-        // 🔹 ManagerId bazlı renk üretimi
+        
         private static Dictionary<int, XLColor> GenerateManagerColors(IEnumerable<EmployeeItem> employees)
         {
             var managers = employees
@@ -158,7 +158,7 @@ namespace LeaveManager.App.Services
             return total;
         }
 
-        // 🔹 Önceki doğru çalışan metodlar
+        
 
         private static Dictionary<int, string> BuildMonthlySummary(
             IEnumerable<Data.Models.Leave> leaves,
@@ -234,10 +234,10 @@ namespace LeaveManager.App.Services
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = @"
-                SELECT annual_entitled, annual_used
-                FROM LeaveBalances
-                WHERE employee_id = @empId AND year = @year;
-            ";
+        SELECT annual_entitled, annual_used, annual_manual_adjust
+        FROM LeaveBalances
+        WHERE employee_id = @empId AND year = @year;
+    ";
 
             cmd.Parameters.AddWithValue("@empId", employeeId);
             cmd.Parameters.AddWithValue("@year", year);
@@ -248,7 +248,9 @@ namespace LeaveManager.App.Services
             {
                 int entitled = reader.GetInt32(0);
                 int used = reader.GetInt32(1);
-                return entitled - used;
+                int adjust = reader.GetInt32(2);
+
+                return entitled + adjust - used;
             }
 
             return 0;
