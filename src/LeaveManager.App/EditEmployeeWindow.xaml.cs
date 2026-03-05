@@ -151,8 +151,19 @@ namespace LeaveManager.App
 
         private void ManageLeaves_Click(object sender, RoutedEventArgs e)
         {
-            
-            MessageBox.Show("İzin yönetim penceresi açılacak.", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                var manageLeavesWindow = new ManageLeavesWindow(_employeeId, txtName.Text.Trim());
+                manageLeavesWindow.Owner = this;
+                manageLeavesWindow.ShowDialog();
+
+                // reload
+                LoadCurrentBalance();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"İzin yönetim penceresi açılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void Delete_Click(object sender, RoutedEventArgs e)

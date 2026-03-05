@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="İzinleri Yönet"
         Width="600"
-        Height="537"
+        Height="552"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="#F5F6F8">
@@ -50,16 +50,31 @@
                            Foreground="{StaticResource TextSecondary}"
                            Margin="0,4,0,20"/>
 
-                <ListBox x:Name="lstLeaves"
-                         SelectionMode="Multiple"
-                         BorderBrush="{StaticResource BorderBrushSoft}"
-                         BorderThickness="1"
-                         Height="300"
-                         DisplayMemberPath="DisplayText"/>
+                                <ListView x:Name="lvLeaves"
+                          Height="300"
+                          BorderBrush="{StaticResource BorderBrushSoft}"
+                          BorderThickness="1"
+                          SelectionMode="Extended">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Width="40">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="İzin ID" DisplayMemberBinding="{Binding Leave.Id}" Width="60"/>
+                            <GridViewColumn Header="Başlangıç" DisplayMemberBinding="{Binding Leave.StartDate}" Width="120"/>
+                            <GridViewColumn Header="Bitiş" DisplayMemberBinding="{Binding Leave.EndDate}" Width="120"/>
+                            <GridViewColumn Header="Tip" DisplayMemberBinding="{Binding Leave.Type}" Width="120"/>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
                     <Button Content="Sil" Width="100" Margin="0,0,12,0" Style="{StaticResource DangerButton}" Click="Delete_Click"/>
-                    <Button Content="Kapat" Width="100" Style="{StaticResource PrimaryButton}" Click="Close_Click"/>
+                    <Button Content="Kaydet" Width="100" Style="{StaticResource PrimaryButton}" Click="Close_Click"/>
                 </StackPanel>
 
             </StackPanel>

@@ -219,6 +219,76 @@ namespace LeaveManager.App.Services
             _balanceRepository.Delete(connection, tx, employeeId, year - 2);
         }
 
+
+
+        public void DeleteLeave(int leaveId)
+        {
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using var tx = connection.BeginTransaction();
+
+            try
+            {
+                Leave? leave = null;
+
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.Transaction = tx;
+                    cmd.CommandText = @"
+SELECT employee_id, type, days, year
+FROM Leaves
+WHERE id = $id;
+";
+                    cmd.Parameters.AddWithValue("$id", leaveId);
+
+                    using var reader = cmd.ExecuteReader();
+
+                    if (reader.Read())
+                    {
+                        leave = new Leave
+                        {
+                            EmployeeId = reader.GetInt32(0),
+                            Type = reader.GetString(1),
+                            Days = reader.GetInt32(2),
+                            Year = reader.GetInt32(3)
+                        };
+                    }
+                }
+
+                if (leave == null)
+                    throw new Exception("Leave bulunamadı.");
+
+                var balance = _balanceRepository
+                    .GetByEmployeeAndYear(connection, leave.EmployeeId, leave.Year);
+
+                if (balance != null)
+                {
+                    if (leave.Type.Equals("Yıllık", StringComparison.OrdinalIgnoreCase)
+                        || leave.Type.Equals("Annual", StringComparison.OrdinalIgnoreCase))
+                    {
+                        balance.AnnualUsed -= leave.Days;
+                    }
+                    else if (leave.Type.Equals("Hastalık", StringComparison.OrdinalIgnoreCase)
+                        || leave.Type.Equals("Sick", StringComparison.OrdinalIgnoreCase))
+                    {
+                        balance.SickUsed -= leave.Days;
+                    }
+
+                    _balanceRepository.Update(connection, tx, balance);
+                }
+
+                _leaveRepository.Delete(connection, tx, leaveId);
+
+                tx.Commit();
+            }
+            catch
+            {
+                tx.Rollback();
+                throw;
+            }
+        }
+
         // ------------------------------------------------------------
         // BALANCE UPDATE
         // ------------------------------------------------------------
