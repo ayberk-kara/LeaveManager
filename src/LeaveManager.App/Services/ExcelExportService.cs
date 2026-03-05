@@ -105,6 +105,10 @@ namespace LeaveManager.App.Services
             sheet.Range(row, 1, row, 17).Style.Fill.BackgroundColor = XLColor.LightGray;
 
             sheet.Columns().AdjustToContents();
+            var tableRange = sheet.Range(1, 1, row, 17);
+
+            tableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            tableRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
             workbook.SaveAs(dialog.FileName);
         }
 
