@@ -149,6 +149,12 @@ namespace LeaveManager.App
             DialogResult = true;
         }
 
+        private void ManageLeaves_Click(object sender, RoutedEventArgs e)
+        {
+            
+            MessageBox.Show("İzin yönetim penceresi açılacak.", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
         private void Delete_Click(object sender, RoutedEventArgs e)
         {
             IsDeleteRequested = true;
