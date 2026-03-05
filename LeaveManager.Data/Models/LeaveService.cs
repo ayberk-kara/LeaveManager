@@ -26,7 +26,7 @@ namespace LeaveManager.App.Services
             _rules = new List<LeaveRule>
             {
                 new DateRangeRule(),
-                new NoPastStartRule(),
+                //new NoPastStartRule(),
                 new NoOverlapRule(),
                 new LongLeaveGapRule(),
 
