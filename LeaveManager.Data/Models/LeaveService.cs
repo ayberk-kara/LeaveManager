@@ -29,7 +29,6 @@ namespace LeaveManager.App.Services
                 //new NoPastStartRule(),
                 new NoOverlapRule(),
                 new LongLeaveGapRule(),
-
             };
         }
 
@@ -219,8 +218,9 @@ namespace LeaveManager.App.Services
             _balanceRepository.Delete(connection, tx, employeeId, year - 2);
         }
 
-
-
+        // ------------------------------------------------------------
+        // DELETE LEAVE
+        // ------------------------------------------------------------
         public void DeleteLeave(int leaveId)
         {
             using var connection = new SqliteConnection(ConnectionString);
@@ -230,7 +230,7 @@ namespace LeaveManager.App.Services
 
             try
             {
-                Leave? leave = null;
+                Leave leave;
 
                 using (var cmd = connection.CreateCommand())
                 {
@@ -245,41 +245,40 @@ WHERE id = $id;
 
                     using var reader = cmd.ExecuteReader();
 
-                    if (reader.Read())
-                    {
-                        var startDate = DateTime.Parse(reader.GetString(3));
+                    if (!reader.Read())
+                        throw new Exception("Leave bulunamadı.");
 
-                        leave = new Leave
-                        {
-                            EmployeeId = reader.GetInt32(0),
-                            Type = reader.GetString(1),
-                            Days = reader.GetInt32(2),
-                            Year = startDate.Year
-                        };
-                    }
+                    var startDate = DateTime.Parse(reader.GetString(3));
+
+                    leave = new Leave
+                    {
+                        EmployeeId = reader.GetInt32(0),
+                        Type = reader.GetString(1),
+                        Days = reader.GetInt32(2),
+                        Year = startDate.Year
+                    };
                 }
 
                 var balance = _balanceRepository
-                .GetByEmployeeAndYear(connection, leave!.EmployeeId, leave.Year);
+                    .GetByEmployeeAndYear(connection, leave.EmployeeId, leave.Year);
 
                 if (balance == null)
                     throw new Exception("Balance bulunamadı.");
 
-                if (balance != null)
+                if (leave.Type.Equals("Yıllık", StringComparison.OrdinalIgnoreCase) ||
+                    leave.Type.Equals("Annual", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (leave.Type.Equals("Yıllık", StringComparison.OrdinalIgnoreCase) ||
-                      leave.Type.Equals("Annual", StringComparison.OrdinalIgnoreCase))
-                    {
-                        balance.AnnualUsed -= leave.Days;
-                    }
-                    else if (leave.Type.Equals("Hastalık", StringComparison.OrdinalIgnoreCase) ||
-                             leave.Type.Equals("Sick", StringComparison.OrdinalIgnoreCase))
-                    {
-                        balance.SickUsed -= leave.Days;
-                    }
-
-                    _balanceRepository.Update(connection, tx, balance);
+                    balance.AnnualUsed =
+                        Math.Max(0, balance.AnnualUsed - leave.Days);
                 }
+                else if (leave.Type.Equals("Hastalık", StringComparison.OrdinalIgnoreCase) ||
+                         leave.Type.Equals("Sick", StringComparison.OrdinalIgnoreCase))
+                {
+                    balance.SickUsed =
+                        Math.Max(0, balance.SickUsed - leave.Days);
+                }
+
+                _balanceRepository.Update(connection, tx, balance);
 
                 _leaveRepository.Delete(connection, tx, leaveId);
 
