@@ -77,7 +77,7 @@ namespace LeaveManager.App
             try
             {
                 foreach (var leave in selectedLeaves)
-                    _leaveService.DeleteLeave(leave.Id);   // SERVICE ÇAĞRISI
+                    _leaveService.DeleteLeave(leave.Id);   
 
                 LoadLeaves();
             }
