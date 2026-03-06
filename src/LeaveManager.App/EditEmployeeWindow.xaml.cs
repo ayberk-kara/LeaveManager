@@ -19,6 +19,8 @@ namespace LeaveManager.App
         public int? UpdatedManagerId { get; private set; }
         public bool IsDeleteRequested { get; private set; }
 
+        public event Action<int> EmployeeUpdated;
+
         private readonly EmployeeRepository _repository = new();
         private readonly LeaveBalanceRepository _balanceRepository = new();
 
@@ -146,6 +148,7 @@ namespace LeaveManager.App
                 UpdatedManagerId = null;
 
             IsDeleteRequested = false;
+            EmployeeUpdated?.Invoke(_employeeId);
             DialogResult = true;
         }
 
@@ -169,11 +172,13 @@ namespace LeaveManager.App
         private void Delete_Click(object sender, RoutedEventArgs e)
         {
             IsDeleteRequested = true;
+            EmployeeUpdated?.Invoke(_employeeId);
             DialogResult = true;
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
+            EmployeeUpdated?.Invoke(_employeeId);
             DialogResult = false;
         }
     }
