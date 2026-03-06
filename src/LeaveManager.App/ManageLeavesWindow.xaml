@@ -65,8 +65,21 @@
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
                             <GridViewColumn Header="İzin ID" DisplayMemberBinding="{Binding Leave.Id}" Width="60"/>
-                            <GridViewColumn Header="Başlangıç" DisplayMemberBinding="{Binding Leave.StartDate}" Width="120"/>
-                            <GridViewColumn Header="Bitiş" DisplayMemberBinding="{Binding Leave.EndDate}" Width="120"/>
+                            <GridViewColumn Header="Başlangıç" Width="120">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Leave.StartDate, StringFormat=d}"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <GridViewColumn Header="Bitiş" Width="120">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Leave.EndDate, StringFormat=d}"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
                             <GridViewColumn Header="Tip" DisplayMemberBinding="{Binding Leave.Type}" Width="120"/>
                         </GridView>
                     </ListView.View>
