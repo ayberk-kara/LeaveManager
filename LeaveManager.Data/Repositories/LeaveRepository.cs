@@ -105,6 +105,37 @@ WHERE employee_id = @empId AND year = @year;
             cmd.ExecuteNonQuery();
         }
 
+        public int CountAnnualLeavesUnderManager(
+    SqliteConnection connection,
+    int managerId,
+    DateTime startDate,
+    DateTime endDate)
+{
+    using var cmd = connection.CreateCommand();
+
+    cmd.CommandText = @"
+SELECT COUNT(DISTINCT l.employee_id)
+FROM Leaves l
+JOIN EmployeeManagerAssignments a 
+    ON a.EmployeeId = l.employee_id
+WHERE a.ManagerId = @managerId
+AND l.type IN ('Annual','Yıllık')
+AND date(l.start_date) <= date(@endDate)
+AND date(l.end_date) >= date(@startDate)
+AND date(a.StartDate) <= date(@endDate)
+AND date(a.EndDate) >= date(@startDate);
+";
+
+    cmd.Parameters.AddWithValue("@managerId", managerId);
+    cmd.Parameters.AddWithValue("@startDate", startDate.ToString("yyyy-MM-dd"));
+    cmd.Parameters.AddWithValue("@endDate", endDate.ToString("yyyy-MM-dd"));
+
+    return Convert.ToInt32(cmd.ExecuteScalar());
+}
+
+
+
+
         public List<Leave> GetByEmployeeId(SqliteConnection connection, int employeeId)
         {
             var result = new List<Leave>();

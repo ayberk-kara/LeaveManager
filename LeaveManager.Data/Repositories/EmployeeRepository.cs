@@ -246,7 +246,7 @@ namespace LeaveManager.Data.Repositories
         // -----------------------------
         // GET ASSIGNMENTS
         // -----------------------------
-        public List<EmployeeManagerAssignment> GetAssignments(int employeeId)
+        public List<EmployeeManagerAssignment> GetManagerAssignments(int employeeId)
         {
             var list = new List<EmployeeManagerAssignment>();
 
