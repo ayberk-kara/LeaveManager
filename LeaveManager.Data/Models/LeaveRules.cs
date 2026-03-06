@@ -110,8 +110,11 @@ namespace LeaveManager.App
         }
     }
 
+    // updated rule  
     public class AssistantConflictRule : LeaveRule
     {
+        private readonly EmployeeRepository _employeeRepository = new();
+
         public AssistantConflictRule()
             : base("Aynı Müdür Yardımcısı Çakışma Kuralı") { }
 
@@ -122,26 +125,49 @@ namespace LeaveManager.App
             Leave newLeave,
             out string reason)
         {
-            if (newLeave.Type != "Annual" || employee.ManagerId == null)
+            if (newLeave.Type != "Annual")
             {
                 reason = string.Empty;
                 return true;
             }
 
-            var sameAssistantEmployees = allEmployees
-                .Where(e => e.ManagerId == employee.ManagerId && e.Id != employee.Id);
+            DateTime current = newLeave.StartDate;
 
-            foreach (var other in sameAssistantEmployees)
+            while (current <= newLeave.EndDate)
             {
-                foreach (var leave in other.Leaves.Where(l => l.Type == "Annual"))
+                var managerId = _employeeRepository.GetManagerIdForDate(employee.Id, current);
+
+                if (managerId == null)
                 {
-                    if (newLeave.StartDate <= leave.EndDate &&
-                        newLeave.EndDate >= leave.StartDate)
+                    reason = $"{current:dd.MM.yyyy} tarihinde çalışan herhangi bir müdür yardımcısına bağlı değil.";
+                    return false;
+                }
+
+                var teamMembers = _employeeRepository
+                    .GetEmployeesUnderManager(managerId.Value, current)
+                    .Where(e => e.Id != employee.Id)
+                    .ToList();
+
+                int count = 0;
+
+                foreach (var member in teamMembers)
+                {
+                    foreach (var leave in member.Leaves.Where(l => l.Type == "Annual"))
                     {
-                        reason = "Aynı müdür yardımcısına bağlı iki çalışan aynı tarihlerde yıllık izin kullanamaz.";
-                        return false;
+                        if (current >= leave.StartDate && current <= leave.EndDate)
+                        {
+                            count++;
+                        }
                     }
                 }
+
+                if (count >= 2)
+                {
+                    reason = $"{current:dd.MM.yyyy} tarihinde aynı müdür yardımcısına bağlı en fazla 2 kişi izin alabilir.";
+                    return false;
+                }
+
+                current = current.AddDays(1);
             }
 
             reason = string.Empty;

@@ -218,7 +218,7 @@ namespace LeaveManager.Data.Repositories
         // -----------------------------
         // GET MANAGER FOR DATE
         // -----------------------------
-        public int? GetManagerForDate(int employeeId, DateTime date)
+        public int? GetManagerIdForDate(int employeeId, DateTime date)
         {
             using var connection = new SqliteConnection(ConnectionString);
             connection.Open();
@@ -355,6 +355,41 @@ namespace LeaveManager.Data.Repositories
             cmd.Parameters.AddWithValue("@year", DateTime.Now.Year);
 
             cmd.ExecuteNonQuery();
+        }
+
+        // -----------------------------
+        // GET EMPLOYEES UNDER MANAGER FOR DATE
+        // -----------------------------
+        public List<Employee> GetEmployeesUnderManager(int managerId, DateTime date)
+        {
+            var list = new List<Employee>();
+
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+        SELECT e.id, e.sicil_no, e.full_name, e.role, e.manager_id, e.is_active
+        FROM Employees e
+        INNER JOIN EmployeeManagerAssignments a
+            ON a.EmployeeId = e.id
+        WHERE a.ManagerId = @managerId
+        AND date(@date) BETWEEN date(a.StartDate) AND date(a.EndDate)
+        AND e.is_active = 1
+        ORDER BY e.full_name;
+    ";
+
+            cmd.Parameters.AddWithValue("@managerId", managerId);
+            cmd.Parameters.AddWithValue("@date", date.ToString("yyyy-MM-dd"));
+
+            using var reader = cmd.ExecuteReader();
+
+            while (reader.Read())
+            {
+                list.Add(Map(reader));
+            }
+
+            return list;
         }
 
         // -----------------------------
