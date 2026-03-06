@@ -11,7 +11,7 @@ namespace LeaveManager.App
     {
         public string RuleName { get; }
 
-        protected LeaveRule(string ruleName)
+    protected LeaveRule(string ruleName)
         {
             RuleName = ruleName;
         }
@@ -28,7 +28,8 @@ namespace LeaveManager.App
     {
         public DateRangeRule() : base("Geçersiz Tarih Aralığı") { }
 
-        public override bool Validate(Employee employee,
+        public override bool Validate(
+            Employee employee,
             IEnumerable<Employee> allEmployees,
             IEnumerable<Leave> existingLeaves,
             Leave newLeave,
@@ -49,7 +50,8 @@ namespace LeaveManager.App
     {
         public NoPastStartRule() : base("Geçmiş Tarihte İzin Başlatılamaz") { }
 
-        public override bool Validate(Employee employee,
+        public override bool Validate(
+            Employee employee,
             IEnumerable<Employee> allEmployees,
             IEnumerable<Leave> existingLeaves,
             Leave newLeave,
@@ -58,6 +60,12 @@ namespace LeaveManager.App
             if (newLeave.StartDate.Date < DateTime.Today)
             {
                 reason = "İzin başlangıç tarihi bugünden önce olamaz.";
+                return false;
+            }
+
+            if (newLeave.EndDate.Date < DateTime.Today)
+            {
+                reason = "İzin geçmiş tarihlerde olamaz.";
                 return false;
             }
 
@@ -70,15 +78,18 @@ namespace LeaveManager.App
     {
         public NoOverlapRule() : base("Çakışan İzin Kuralı") { }
 
-        public override bool Validate(Employee employee,
+        public override bool Validate(
+            Employee employee,
             IEnumerable<Employee> allEmployees,
             IEnumerable<Leave> existingLeaves,
             Leave newLeave,
             out string reason)
         {
-            if (existingLeaves.Any(l =>
+            bool overlap = existingLeaves.Any(l =>
                 newLeave.StartDate <= l.EndDate &&
-                newLeave.EndDate >= l.StartDate))
+                newLeave.EndDate >= l.StartDate);
+
+            if (overlap)
             {
                 reason = "Bu izin, mevcut başka bir izinle tarih çakışması içeriyor.";
                 return false;
@@ -93,15 +104,20 @@ namespace LeaveManager.App
     {
         public OneLeavePerDayRule() : base("Aynı Gün Tek İzin Kuralı") { }
 
-        public override bool Validate(Employee employee,
+        public override bool Validate(
+            Employee employee,
             IEnumerable<Employee> allEmployees,
             IEnumerable<Leave> existingLeaves,
             Leave newLeave,
             out string reason)
         {
-            if (existingLeaves.Any(l => l.StartDate.Date == newLeave.StartDate.Date))
+            bool overlap = existingLeaves.Any(l =>
+                newLeave.StartDate <= l.EndDate &&
+                newLeave.EndDate >= l.StartDate);
+
+            if (overlap)
             {
-                reason = "Aynı başlangıç tarihi için birden fazla izin girilemez.";
+                reason = "Çalışan aynı tarihlerde birden fazla izin kullanamaz.";
                 return false;
             }
 
@@ -110,7 +126,6 @@ namespace LeaveManager.App
         }
     }
 
-    // updated rule  
     public class AssistantConflictRule : LeaveRule
     {
         private readonly EmployeeRepository _employeeRepository = new();
@@ -125,53 +140,69 @@ namespace LeaveManager.App
             Leave newLeave,
             out string reason)
         {
-            if (newLeave.Type != "Annual")
+            if (!newLeave.Type.Equals("Annual", StringComparison.OrdinalIgnoreCase))
             {
                 reason = string.Empty;
                 return true;
             }
 
-            DateTime current = newLeave.StartDate;
+            DateTime start = newLeave.StartDate.Date;
+            DateTime end = newLeave.EndDate.Date;
 
-            while (current <= newLeave.EndDate)
+            var assignments = _employeeRepository
+                .GetManagerAssignments(employee.Id)
+                .Where(a => a.StartDate <= end && a.EndDate >= start)
+                .ToList();
+
+            if (!assignments.Any())
             {
-                var managerId = _employeeRepository.GetManagerIdForDate(employee.Id, current);
+                reason = "Çalışan izin tarihleri içinde herhangi bir müdür yardımcısına bağlı değil.";
+                return false;
+            }
 
-                if (managerId == null)
-                {
-                    reason = $"{current:dd.MM.yyyy} tarihinde çalışan herhangi bir müdür yardımcısına bağlı değil.";
-                    return false;
-                }
+            foreach (var assignment in assignments)
+            {
+                DateTime segmentStart = assignment.StartDate > start ? assignment.StartDate : start;
+                DateTime segmentEnd = assignment.EndDate < end ? assignment.EndDate : end;
 
-                var teamMembers = _employeeRepository
-                    .GetEmployeesUnderManager(managerId.Value, current)
+                var teamMembers = allEmployees
                     .Where(e => e.Id != employee.Id)
+                    .Where(e =>
+                    {
+                        var a = _employeeRepository.GetManagerAssignments(e.Id)
+                            .FirstOrDefault(x =>
+                                x.ManagerId == assignment.ManagerId &&
+                                x.StartDate <= segmentEnd &&
+                                x.EndDate >= segmentStart);
+
+                        return a != null;
+                    })
                     .ToList();
 
-                int count = 0;
-
-                foreach (var member in teamMembers)
+                foreach (var day in EachDay(segmentStart, segmentEnd))
                 {
-                    foreach (var leave in member.Leaves.Where(l => l.Type == "Annual"))
+                    int count = teamMembers.Count(member =>
+                        member.Leaves.Any(l =>
+                            l.Type.Equals("Annual", StringComparison.OrdinalIgnoreCase) &&
+                            day >= l.StartDate &&
+                            day <= l.EndDate));
+
+                    if (count >= 2)
                     {
-                        if (current >= leave.StartDate && current <= leave.EndDate)
-                        {
-                            count++;
-                        }
+                        reason = $"{day:dd.MM.yyyy} tarihinde aynı müdür yardımcısına bağlı en fazla 2 kişi izin alabilir.";
+                        return false;
                     }
                 }
-
-                if (count >= 2)
-                {
-                    reason = $"{current:dd.MM.yyyy} tarihinde aynı müdür yardımcısına bağlı en fazla 2 kişi izin alabilir.";
-                    return false;
-                }
-
-                current = current.AddDays(1);
             }
 
             reason = string.Empty;
             return true;
+        }
+
+        private IEnumerable<DateTime> EachDay(DateTime start, DateTime end)
+        {
+            for (var day = start; day <= end; day = day.AddDays(1))
+                yield return day;
         }
     }
 
@@ -215,4 +246,6 @@ namespace LeaveManager.App
             return true;
         }
     }
+
+
 }
