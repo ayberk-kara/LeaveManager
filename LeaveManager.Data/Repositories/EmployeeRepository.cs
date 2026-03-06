@@ -75,7 +75,7 @@ namespace LeaveManager.Data.Repositories
 
             try
             {
-                
+
                 using var cmd = connection.CreateCommand();
                 cmd.Transaction = transaction;
 
@@ -94,7 +94,7 @@ namespace LeaveManager.Data.Repositories
 
                 cmd.ExecuteNonQuery();
 
-                
+
                 long employeeId;
 
                 using (var idCmd = connection.CreateCommand())
@@ -110,7 +110,7 @@ namespace LeaveManager.Data.Repositories
                     employeeId = Convert.ToInt64(result);
                 }
 
-                
+
                 using (var balanceCmd = connection.CreateCommand())
                 {
                     balanceCmd.Transaction = transaction;
@@ -216,6 +216,113 @@ namespace LeaveManager.Data.Repositories
         }
 
         // -----------------------------
+        // GET MANAGER FOR DATE
+        // -----------------------------
+        public int? GetManagerForDate(int employeeId, DateTime date)
+        {
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+            SELECT ManagerId
+            FROM EmployeeManagerAssignments
+            WHERE EmployeeId = @empId
+            AND date(@date) BETWEEN date(StartDate) AND date(EndDate)
+            LIMIT 1;
+        ";
+
+            cmd.Parameters.AddWithValue("@empId", employeeId);
+            cmd.Parameters.AddWithValue("@date", date.ToString("yyyy-MM-dd"));
+
+            var result = cmd.ExecuteScalar();
+
+            if (result == null || result == DBNull.Value)
+                return null;
+
+            return Convert.ToInt32(result);
+        }
+
+        // -----------------------------
+        // GET ASSIGNMENTS
+        // -----------------------------
+        public List<EmployeeManagerAssignment> GetAssignments(int employeeId)
+        {
+            var list = new List<EmployeeManagerAssignment>();
+
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+            SELECT Id, EmployeeId, ManagerId, StartDate, EndDate
+            FROM EmployeeManagerAssignments
+            WHERE EmployeeId = @empId
+            ORDER BY StartDate;
+        ";
+
+            cmd.Parameters.AddWithValue("@empId", employeeId);
+
+            using var reader = cmd.ExecuteReader();
+
+            while (reader.Read())
+            {
+                list.Add(new EmployeeManagerAssignment
+                {
+                    Id = reader.GetInt32(0),
+                    EmployeeId = reader.GetInt32(1),
+                    ManagerId = reader.GetInt32(2),
+                    StartDate = DateTime.Parse(reader.GetString(3)),
+                    EndDate = DateTime.Parse(reader.GetString(4))
+                });
+            }
+
+            return list;
+        }
+
+        // -----------------------------
+        // ADD ASSIGNMENT
+        // -----------------------------
+        public void AddAssignment(EmployeeManagerAssignment assignment)
+        {
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+            INSERT INTO EmployeeManagerAssignments
+            (EmployeeId, ManagerId, StartDate, EndDate)
+            VALUES
+            (@empId, @managerId, @start, @end);
+        ";
+
+            cmd.Parameters.AddWithValue("@empId", assignment.EmployeeId);
+            cmd.Parameters.AddWithValue("@managerId", assignment.ManagerId);
+            cmd.Parameters.AddWithValue("@start", assignment.StartDate.ToString("yyyy-MM-dd"));
+            cmd.Parameters.AddWithValue("@end", assignment.EndDate.ToString("yyyy-MM-dd"));
+
+            cmd.ExecuteNonQuery();
+        }
+
+        // -----------------------------
+        // DELETE ASSIGNMENT
+        // -----------------------------
+        public void DeleteAssignment(int assignmentId)
+        {
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+            DELETE FROM EmployeeManagerAssignments
+            WHERE Id = @id;
+        ";
+
+            cmd.Parameters.AddWithValue("@id", assignmentId);
+            cmd.ExecuteNonQuery();
+        }
+
+        // -----------------------------
         //  PRIVATE MAP METHOD
         // -----------------------------
         private static Employee Map(SqliteDataReader reader)
@@ -231,21 +338,10 @@ namespace LeaveManager.Data.Repositories
             };
         }
 
-
-
-
-
-
-
-
-
-
-
-
         private void CreateLeaveBalanceIfMissing(
-    SqliteConnection connection,
-    SqliteTransaction transaction,
-    int employeeId)
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        int employeeId)
         {
             using var cmd = connection.CreateCommand();
             cmd.Transaction = transaction;
@@ -260,14 +356,15 @@ namespace LeaveManager.Data.Repositories
 
             cmd.ExecuteNonQuery();
         }
+
         // -----------------------------
         //  RESTORE DELETED METHOD
         // -----------------------------
         public (Employee employee, bool WasRestored) RestoreOrCreate(
-    int sicilNo,
-    string fullName,
-    EmployeeRole role,
-    int? managerId = null)
+        int sicilNo,
+        string fullName,
+        EmployeeRole role,
+        int? managerId = null)
         {
             using var connection = new SqliteConnection(ConnectionString);
             connection.Open();
@@ -276,7 +373,7 @@ namespace LeaveManager.Data.Repositories
 
             try
             {
-                
+
                 using var checkCmd = connection.CreateCommand();
                 checkCmd.Transaction = transaction;
                 checkCmd.CommandText = @"
@@ -297,7 +394,7 @@ namespace LeaveManager.Data.Repositories
 
                     if (!isActive)
                     {
-                        
+
                         using var restoreCmd = connection.CreateCommand();
                         restoreCmd.Transaction = transaction;
                         restoreCmd.CommandText = @"
@@ -317,7 +414,7 @@ namespace LeaveManager.Data.Repositories
 
                         restoreCmd.ExecuteNonQuery();
 
-                        
+
                         CreateLeaveBalanceIfMissing(connection, transaction, id);
 
                         transaction.Commit();
@@ -338,7 +435,7 @@ namespace LeaveManager.Data.Repositories
 
                 reader.Close();
 
-                
+
                 using var insertCmd = connection.CreateCommand();
                 insertCmd.Transaction = transaction;
                 insertCmd.CommandText = @"
@@ -354,7 +451,7 @@ namespace LeaveManager.Data.Repositories
 
                 insertCmd.ExecuteNonQuery();
 
-               
+
                 using var idCmd = connection.CreateCommand();
                 idCmd.Transaction = transaction;
                 idCmd.CommandText = "SELECT last_insert_rowid();";
@@ -365,7 +462,7 @@ namespace LeaveManager.Data.Repositories
 
                 int newId = Convert.ToInt32(result);
 
-                
+
                 CreateLeaveBalanceIfMissing(connection, transaction, newId);
 
                 transaction.Commit();
@@ -389,4 +486,3 @@ namespace LeaveManager.Data.Repositories
 
     }
 }
-    
