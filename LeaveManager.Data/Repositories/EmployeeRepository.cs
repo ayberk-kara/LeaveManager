@@ -426,6 +426,90 @@ namespace LeaveManager.Data.Repositories
         }
 
         // -----------------------------
+        // INSERT OR UPDATE ASSIGNMENTS 
+        // -----------------------------
+
+        public void SaveManagerAssignments(
+    int employeeId,
+    int managerId,
+    int year,
+    List<int> months)
+        {
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using var transaction = connection.BeginTransaction();
+
+            try
+            {
+                foreach (var month in months)
+                {
+                    using var checkCmd = connection.CreateCommand();
+                    checkCmd.Transaction = transaction;
+
+                    checkCmd.CommandText = @"
+                SELECT Id
+                FROM EmployeeManagerAssignments
+                WHERE EmployeeId = @empId
+                AND Year = @year
+                AND Month = @month
+                LIMIT 1;
+            ";
+
+                    checkCmd.Parameters.AddWithValue("@empId", employeeId);
+                    checkCmd.Parameters.AddWithValue("@year", year);
+                    checkCmd.Parameters.AddWithValue("@month", month);
+
+                    var result = checkCmd.ExecuteScalar();
+
+                    if (result != null && result != DBNull.Value)
+                    {
+                        // UPDATE
+                        using var updateCmd = connection.CreateCommand();
+                        updateCmd.Transaction = transaction;
+
+                        updateCmd.CommandText = @"
+                    UPDATE EmployeeManagerAssignments
+                    SET ManagerId = @managerId
+                    WHERE Id = @id;
+                ";
+
+                        updateCmd.Parameters.AddWithValue("@managerId", managerId);
+                        updateCmd.Parameters.AddWithValue("@id", Convert.ToInt32(result));
+
+                        updateCmd.ExecuteNonQuery();
+                    }
+                    else
+                    {
+                        // INSERT
+                        using var insertCmd = connection.CreateCommand();
+                        insertCmd.Transaction = transaction;
+
+                        insertCmd.CommandText = @"
+                    INSERT INTO EmployeeManagerAssignments
+                    (EmployeeId, ManagerId, Year, Month)
+                    VALUES
+                    (@empId, @managerId, @year, @month);
+                ";
+
+                        insertCmd.Parameters.AddWithValue("@empId", employeeId);
+                        insertCmd.Parameters.AddWithValue("@managerId", managerId);
+                        insertCmd.Parameters.AddWithValue("@year", year);
+                        insertCmd.Parameters.AddWithValue("@month", month);
+
+                        insertCmd.ExecuteNonQuery();
+                    }
+                }
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+        // -----------------------------
         //  RESTORE DELETED METHOD
         // -----------------------------
         public (Employee employee, bool WasRestored) RestoreOrCreate(
