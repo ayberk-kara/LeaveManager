@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Müdür Yardımcısı Ataması"
-        Height="455" Width="520"
+        Height="509" Width="520"
         WindowStartupLocation="CenterOwner"
         Background="#F5F6F8"
         ResizeMode="NoResize">
