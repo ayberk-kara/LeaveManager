@@ -509,6 +509,52 @@ namespace LeaveManager.Data.Repositories
                 throw;
             }
         }
+
+        // -----------------------------
+        //  Add or update with delete logic (if same month-year exists, delete and insert new)
+        // -----------------------------
+
+        public void AddOrUpdateManagerAssignment(int employeeId, int managerId, int year, List<int> months)
+        {
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using var tx = connection.BeginTransaction();
+
+            foreach (int month in months)
+            {
+                // Eğer aynı yıl ve ayda başka atama varsa sil
+                using var delCmd = connection.CreateCommand();
+                delCmd.Transaction = tx;
+                delCmd.CommandText = @"
+            DELETE FROM EmployeeManagerAssignments
+            WHERE EmployeeId = @empId
+              AND strftime('%Y', StartDate) = @year
+              AND strftime('%m', StartDate) = @month;
+        ";
+                delCmd.Parameters.AddWithValue("@empId", employeeId);
+                delCmd.Parameters.AddWithValue("@year", year.ToString());
+                delCmd.Parameters.AddWithValue("@month", month.ToString("D2"));
+                delCmd.ExecuteNonQuery();
+
+                // Yeni atama ekle
+                using var insertCmd = connection.CreateCommand();
+                insertCmd.Transaction = tx;
+                insertCmd.CommandText = @"
+            INSERT INTO EmployeeManagerAssignments (EmployeeId, ManagerId, StartDate, EndDate)
+            VALUES (@empId, @managerId, @start, @end);
+        ";
+                var start = new DateTime(year, month, 1);
+                var end = new DateTime(year, month, DateTime.DaysInMonth(year, month));
+                insertCmd.Parameters.AddWithValue("@empId", employeeId);
+                insertCmd.Parameters.AddWithValue("@managerId", managerId);
+                insertCmd.Parameters.AddWithValue("@start", start.ToString("yyyy-MM-dd"));
+                insertCmd.Parameters.AddWithValue("@end", end.ToString("yyyy-MM-dd"));
+                insertCmd.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+        }
         // -----------------------------
         //  RESTORE DELETED METHOD
         // -----------------------------

@@ -3,10 +3,26 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:IzinProgrami"
         mc:Ignorable="d"
-        Title="EmployeeManagerAssignmentsWindow" Height="450" Width="800">
-    <Grid>
+        Title="Müdür Yardımcısı Atamaları" Height="500" Width="800"
+        WindowStartupLocation="CenterOwner" Background="#F5F6F8">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
         
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
+            <Button Content="Yeni Atama" Width="120" Height="36" Margin="0,0,10,0"
+                    Click="BtnNewAssignment_Click"/>
+        </StackPanel>
+
+        
+        <Border Grid.Row="1" Background="White" CornerRadius="12" Padding="12" BorderBrush="#E5E7EB" BorderThickness="1">
+            <ListBox x:Name="lstAssignments" MouseDoubleClick="LstAssignments_MouseDoubleClick"
+                     DisplayMemberPath="DisplayText"/>
+        </Border>
     </Grid>
 </Window>

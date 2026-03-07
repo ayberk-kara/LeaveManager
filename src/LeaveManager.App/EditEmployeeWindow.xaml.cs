@@ -1,31 +1,34 @@
-﻿using System;
+﻿using IzinProgrami;
+using LeaveManager.Data.Models;
+using LeaveManager.Data.Repositories;
+using LeaveManager.Data.Storage;
+using LeaveManager.Models;
+using Microsoft.Data.Sqlite;
+using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
-using LeaveManager.Models;
-using LeaveManager.Data.Repositories;
-using LeaveManager.Data.Models;
-using Microsoft.Data.Sqlite;
-using LeaveManager.Data.Storage;
 
 namespace LeaveManager.App
 {
     public partial class EditEmployeeWindow : Window
     {
-        // --- OUTPUT ---
+        
         public string UpdatedName { get; private set; } = string.Empty;
         public int UpdatedSicilNo { get; private set; }
         public EmployeeRole UpdatedRole { get; private set; }
         public int? UpdatedManagerId { get; private set; }
         public bool IsDeleteRequested { get; private set; }
 
-        public event Action<int> EmployeeUpdated;
+        
+        public event Action<int>? EmployeeUpdated;
 
         private readonly EmployeeRepository _repository = new();
         private readonly LeaveBalanceRepository _balanceRepository = new();
 
         private LeaveBalance? _currentBalance;
         private readonly int _employeeId;
+        private readonly EmployeeRole _employeeRole;
 
         private readonly Dictionary<EmployeeRole, string> _roleMap = new()
         {
@@ -44,23 +47,35 @@ namespace LeaveManager.App
             InitializeComponent();
 
             _employeeId = employeeId;
+            _employeeRole = role;
 
             txtName.Text = fullName;
             txtRegistryNo.Text = sicilNo.ToString();
 
+            
             cmbRole.ItemsSource = new List<string>(_roleMap.Values);
             cmbRole.SelectedItem = _roleMap[role];
 
+            
             _assistants = _repository.GetAssistants();
             cmbManagerAssistant.ItemsSource = _assistants;
             cmbManagerAssistant.DisplayMemberPath = "FullName";
             cmbManagerAssistant.SelectedValuePath = "Id";
 
+            
             if (role == EmployeeRole.Employee)
             {
                 ManagerAssistantPanel.Visibility = Visibility.Visible;
                 if (managerId.HasValue)
                     cmbManagerAssistant.SelectedValue = managerId.Value;
+
+               
+                btnManageAssignments.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                ManagerAssistantPanel.Visibility = Visibility.Collapsed;
+                btnManageAssignments.Visibility = Visibility.Collapsed;
             }
 
             LoadCurrentBalance();
@@ -70,8 +85,7 @@ namespace LeaveManager.App
         {
             int currentYear = DateTime.Now.Year;
 
-            using var connection = new SqliteConnection(
-     $"Data Source={DbPaths.GetDbFilePath()}");
+            using var connection = new SqliteConnection($"Data Source={DbPaths.GetDbFilePath()}");
             connection.Open();
 
             _currentBalance = _balanceRepository.GetByEmployeeAndYear(connection, _employeeId, currentYear);
@@ -118,9 +132,7 @@ namespace LeaveManager.App
 
             if (_currentBalance != null)
             {
-
-                using var connection = new SqliteConnection(
-     $"Data Source={DbPaths.GetDbFilePath()}");
+                using var connection = new SqliteConnection($"Data Source={DbPaths.GetDbFilePath()}");
                 connection.Open();
                 using var tx = connection.BeginTransaction();
 
@@ -167,6 +179,15 @@ namespace LeaveManager.App
             {
                 MessageBox.Show($"İzin yönetim penceresi açılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void ManageAssignments_Click(object sender, RoutedEventArgs e)
+        {
+            if (_employeeRole != EmployeeRole.Employee) return;
+
+            var assignmentsWindow = new EmployeeManagerAssignmentsWindow(_employeeId);
+            assignmentsWindow.Owner = this;
+            assignmentsWindow.ShowDialog();
         }
 
         private void Delete_Click(object sender, RoutedEventArgs e)
