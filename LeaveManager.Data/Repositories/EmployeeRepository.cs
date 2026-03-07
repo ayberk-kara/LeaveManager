@@ -225,15 +225,17 @@ namespace LeaveManager.Data.Repositories
 
             using var cmd = connection.CreateCommand();
             cmd.CommandText = @"
-            SELECT ManagerId
-            FROM EmployeeManagerAssignments
-            WHERE EmployeeId = @empId
-            AND date(@date) BETWEEN date(StartDate) AND date(EndDate)
-            LIMIT 1;
-        ";
+        SELECT ManagerId
+        FROM EmployeeManagerAssignments
+        WHERE EmployeeId = @empId
+        AND Year = @year
+        AND Month = @month
+        LIMIT 1;
+    ";
 
             cmd.Parameters.AddWithValue("@empId", employeeId);
-            cmd.Parameters.AddWithValue("@date", date.ToString("yyyy-MM-dd"));
+            cmd.Parameters.AddWithValue("@year", date.Year);
+            cmd.Parameters.AddWithValue("@month", date.Month);
 
             var result = cmd.ExecuteScalar();
 
@@ -255,11 +257,11 @@ namespace LeaveManager.Data.Repositories
 
             using var cmd = connection.CreateCommand();
             cmd.CommandText = @"
-            SELECT Id, EmployeeId, ManagerId, StartDate, EndDate
-            FROM EmployeeManagerAssignments
-            WHERE EmployeeId = @empId
-            ORDER BY StartDate;
-        ";
+        SELECT Id, EmployeeId, ManagerId, Year, Month
+        FROM EmployeeManagerAssignments
+        WHERE EmployeeId = @empId
+        ORDER BY Year, Month;
+    ";
 
             cmd.Parameters.AddWithValue("@empId", employeeId);
 
@@ -272,14 +274,44 @@ namespace LeaveManager.Data.Repositories
                     Id = reader.GetInt32(0),
                     EmployeeId = reader.GetInt32(1),
                     ManagerId = reader.GetInt32(2),
-                    StartDate = DateTime.Parse(reader.GetString(3)),
-                    EndDate = DateTime.Parse(reader.GetString(4))
+                    Year = reader.GetInt32(3),
+                    Month = reader.GetInt32(4)
                 });
             }
 
             return list;
         }
 
+
+        public List<EmployeeManagerAssignment> GetAllManagerAssignments()
+        {
+            var list = new List<EmployeeManagerAssignment>();
+
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+        SELECT Id, EmployeeId, ManagerId, Year, Month
+        FROM EmployeeManagerAssignments;
+    ";
+
+            using var reader = cmd.ExecuteReader();
+
+            while (reader.Read())
+            {
+                list.Add(new EmployeeManagerAssignment
+                {
+                    Id = reader.GetInt32(0),
+                    EmployeeId = reader.GetInt32(1),
+                    ManagerId = reader.GetInt32(2),
+                    Year = reader.GetInt32(3),
+                    Month = reader.GetInt32(4)
+                });
+            }
+
+            return list;
+        }
         // -----------------------------
         // ADD ASSIGNMENT
         // -----------------------------
@@ -290,20 +322,19 @@ namespace LeaveManager.Data.Repositories
 
             using var cmd = connection.CreateCommand();
             cmd.CommandText = @"
-            INSERT INTO EmployeeManagerAssignments
-            (EmployeeId, ManagerId, StartDate, EndDate)
-            VALUES
-            (@empId, @managerId, @start, @end);
-        ";
+        INSERT INTO EmployeeManagerAssignments
+        (EmployeeId, ManagerId, Year, Month)
+        VALUES
+        (@empId, @managerId, @year, @month);
+    ";
 
             cmd.Parameters.AddWithValue("@empId", assignment.EmployeeId);
             cmd.Parameters.AddWithValue("@managerId", assignment.ManagerId);
-            cmd.Parameters.AddWithValue("@start", assignment.StartDate.ToString("yyyy-MM-dd"));
-            cmd.Parameters.AddWithValue("@end", assignment.EndDate.ToString("yyyy-MM-dd"));
+            cmd.Parameters.AddWithValue("@year", assignment.Year);
+            cmd.Parameters.AddWithValue("@month", assignment.Month);
 
             cmd.ExecuteNonQuery();
         }
-
         // -----------------------------
         // DELETE ASSIGNMENT
         // -----------------------------
@@ -374,13 +405,15 @@ namespace LeaveManager.Data.Repositories
         INNER JOIN EmployeeManagerAssignments a
             ON a.EmployeeId = e.id
         WHERE a.ManagerId = @managerId
-        AND date(@date) BETWEEN date(a.StartDate) AND date(a.EndDate)
+        AND a.Year = @year
+        AND a.Month = @month
         AND e.is_active = 1
         ORDER BY e.full_name;
     ";
 
             cmd.Parameters.AddWithValue("@managerId", managerId);
-            cmd.Parameters.AddWithValue("@date", date.ToString("yyyy-MM-dd"));
+            cmd.Parameters.AddWithValue("@year", date.Year);
+            cmd.Parameters.AddWithValue("@month", date.Month);
 
             using var reader = cmd.ExecuteReader();
 
