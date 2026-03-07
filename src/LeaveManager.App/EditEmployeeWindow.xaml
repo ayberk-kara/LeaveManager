@@ -104,16 +104,28 @@
                               Margin="0,6,0,20"
                               SelectionChanged="RoleComboBox_SelectionChanged"/>
 
-                    <!-- ASSIGNMENT BUTTON -->
-                    <Button x:Name="btnManageAssistantAssignments"
-                            Content="Müdür Yardımcısı Atamalarını Yönet"
-                            Width="280"
-                            Height="46"
-                            Margin="0,20,0,30"
-                            Style="{StaticResource PrimaryButton}"
-                            HorizontalAlignment="Left"
-                            Click="ManageAssistantAssignments_Click"
-                            Visibility="Collapsed"/>
+                    <!-- MANAGER PANEL -->
+                    <StackPanel x:Name="ManagerAssistantPanel"
+                                Visibility="Collapsed">
+
+                        <TextBlock Text="Müdür Yardımcısı Seçimi"
+                                   FontSize="13"
+                                   Foreground="{StaticResource TextSecondary}"/>
+                        <ComboBox x:Name="cmbManagerAssistant"
+                                  Style="{StaticResource ModernComboBox}"
+                                  Margin="0,6,0,20"
+                                  DisplayMemberPath="FullName"
+                                  SelectedValuePath="Id"/>
+
+                        <Button x:Name="btnManageAssignments"
+                                Content="Müdür Yardımcısı Atamalarını Yönet"
+                                Width="280"
+                                Height="46"
+                                Margin="0,20,0,30"
+                                Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Left"
+                                Click="ManageAssignments_Click"/>
+                    </StackPanel>
 
                     <!-- LEAVE BALANCE -->
                     <TextBlock Text="Kalan yıllık izin hakkı"
