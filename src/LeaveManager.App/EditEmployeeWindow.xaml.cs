@@ -191,9 +191,18 @@ namespace LeaveManager.App
 
         private void Delete_Click(object sender, RoutedEventArgs e)
         {
-            IsDeleteRequested = true;
-            EmployeeUpdated?.Invoke(_employeeId);
-            DialogResult = true;
+            var confirmWindow = new DeleteConfirmWindow(_employeeId)
+            {
+                Owner = this
+            };
+
+            bool? result = confirmWindow.ShowDialog();
+
+            if (result == true && confirmWindow.Confirmed)
+            {
+                MessageBox.Show("Personel ve tüm ilişkili verileri başarıyla silindi.", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
+                DialogResult = true; 
+            }
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
