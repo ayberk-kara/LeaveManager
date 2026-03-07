@@ -50,17 +50,14 @@ namespace LeaveManager.App
             txtName.Text = fullName;
             txtRegistryNo.Text = sicilNo.ToString();
 
-            
             cmbRole.ItemsSource = new List<string>(_roleMap.Values);
             cmbRole.SelectedItem = _roleMap[role];
 
-            
             _assistants = _repository.GetAssistants();
             cmbManagerAssistant.ItemsSource = _assistants;
             cmbManagerAssistant.DisplayMemberPath = "FullName";
             cmbManagerAssistant.SelectedValuePath = "Id";
 
-            
             if (role == EmployeeRole.Employee)
             {
                 ManagerAssistantPanel.Visibility = Visibility.Visible;
@@ -175,7 +172,6 @@ namespace LeaveManager.App
                 manageLeavesWindow.Owner = this;
                 manageLeavesWindow.ShowDialog();
 
-                // reload
                 LoadCurrentBalance();
             }
             catch (Exception ex)
@@ -186,7 +182,6 @@ namespace LeaveManager.App
 
         private void ManageAssignments_Click(object sender, RoutedEventArgs e)
         {
-            
             if (_employeeRole != EmployeeRole.Employee) return;
 
             var assignmentsWindow = new EmployeeManagerAssignmentsWindow(_employeeId);
@@ -203,7 +198,6 @@ namespace LeaveManager.App
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
-            EmployeeUpdated?.Invoke(_employeeId);
             DialogResult = false;
         }
     }
