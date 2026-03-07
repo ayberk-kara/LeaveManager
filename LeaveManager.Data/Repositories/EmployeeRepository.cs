@@ -516,6 +516,74 @@ namespace LeaveManager.Data.Repositories
             cmd.ExecuteNonQuery();
         }
 
+        // -----------------------------
+        // HARD DELETE EMPLOYEE (FULL CLEANUP)
+        // -----------------------------
+        public void HardDelete(int employeeId)
+        {
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+               
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.Transaction = transaction;
+                    cmd.CommandText = @"
+                DELETE FROM EmployeeManagerAssignments
+                WHERE EmployeeId = @empId
+                OR ManagerId = @empId;
+            ";
+                    cmd.Parameters.AddWithValue("@empId", employeeId);
+                    cmd.ExecuteNonQuery();
+                }
+
+                
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.Transaction = transaction;
+                    cmd.CommandText = @"
+                DELETE FROM Leaves
+                WHERE employee_id = @empId;
+            ";
+                    cmd.Parameters.AddWithValue("@empId", employeeId);
+                    cmd.ExecuteNonQuery();
+                }
+
+                
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.Transaction = transaction;
+                    cmd.CommandText = @"
+                DELETE FROM LeaveBalances
+                WHERE employee_id = @empId;
+            ";
+                    cmd.Parameters.AddWithValue("@empId", employeeId);
+                    cmd.ExecuteNonQuery();
+                }
+
+               
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.Transaction = transaction;
+                    cmd.CommandText = @"
+                DELETE FROM Employees
+                WHERE id = @empId;
+            ";
+                    cmd.Parameters.AddWithValue("@empId", employeeId);
+                    cmd.ExecuteNonQuery();
+                }
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
 
         // -----------------------------
         //  RESTORE DELETED METHOD
