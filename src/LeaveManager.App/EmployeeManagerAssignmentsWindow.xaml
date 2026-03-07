@@ -55,7 +55,9 @@
 
         <!-- HEADER + Yeni Atama -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,12">
-            <Button Content="Yeni Atama" Width="120" Style="{StaticResource PrimaryButton}"
+            <Button Content="Yeni Atama"
+                    Width="120"
+                    Style="{StaticResource PrimaryButton}"
                     Click="BtnNewAssignment_Click"/>
         </StackPanel>
 
@@ -63,8 +65,19 @@
         <Border Grid.Row="1" Style="{StaticResource CardStyle}">
             <ListBox x:Name="lstAssignments"
                      Style="{StaticResource ModernListBox}"
-                     MouseDoubleClick="LstAssignments_MouseDoubleClick"
-                     DisplayMemberPath="DisplayText"/>
+                     DisplayMemberPath="DisplayText">
+
+                <ListBox.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Düzenle"
+                                  Click="EditAssignment_Click"/>
+                        <MenuItem Header="Sil"
+                                  Click="DeleteAssignment_Click"/>
+                    </ContextMenu>
+                </ListBox.ContextMenu>
+
+            </ListBox>
         </Border>
+
     </Grid>
 </Window>
