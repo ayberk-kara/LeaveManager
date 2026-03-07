@@ -15,10 +15,13 @@ CREATE TABLE IF NOT EXISTS EmployeeManagerAssignments (
     Id INTEGER PRIMARY KEY AUTOINCREMENT,
     EmployeeId INTEGER NOT NULL,
     ManagerId INTEGER NOT NULL,
-    StartDate TEXT NOT NULL,
-    EndDate TEXT NOT NULL,
+    Year INTEGER NOT NULL,
+    Month INTEGER NOT NULL,
+
     FOREIGN KEY(EmployeeId) REFERENCES Employees(Id),
-    FOREIGN KEY(ManagerId) REFERENCES Employees(Id)
+    FOREIGN KEY(ManagerId) REFERENCES Employees(Id),
+
+    UNIQUE(EmployeeId, Year, Month)
 );";
 
             cmd.ExecuteNonQuery();
