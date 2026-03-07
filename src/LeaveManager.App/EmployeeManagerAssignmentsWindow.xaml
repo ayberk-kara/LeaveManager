@@ -67,6 +67,7 @@
                      Style="{StaticResource ModernListBox}"
                      DisplayMemberPath="DisplayText">
 
+                
                 <ListBox.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="Düzenle"
