@@ -3,6 +3,7 @@ using LeaveManager.Data.Repositories;
 using LeaveManager.Models;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -21,6 +22,7 @@ namespace IzinProgrami
         public EditAssignmentWindow(int employeeId)
         {
             InitializeComponent();
+
             _employeeId = employeeId;
 
             LoadManagers();
@@ -38,6 +40,7 @@ namespace IzinProgrami
         private void LoadManagers()
         {
             var assistants = _repository.GetAssistants();
+
             cmbManager.ItemsSource = assistants;
             cmbManager.DisplayMemberPath = "FullName";
             cmbManager.SelectedValuePath = "Id";
@@ -48,10 +51,7 @@ namespace IzinProgrami
             for (int year = 2015; year <= 2055; year++)
                 cmbYear.Items.Add(year);
 
-            if (_assignment != null)
-                cmbYear.SelectedItem = _assignment.Year;
-            else
-                cmbYear.SelectedItem = DateTime.Now.Year;
+            cmbYear.SelectedItem = _assignment?.Year ?? DateTime.Now.Year;
         }
 
         private void LoadMonthsCheckList()
@@ -62,28 +62,19 @@ namespace IzinProgrami
             {
                 var cb = new CheckBox
                 {
-                    Content = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(month),
+                    Content = CultureInfo.GetCultureInfo("tr-TR").DateTimeFormat.GetMonthName(month),
                     Tag = month,
                     Margin = new Thickness(0, 0, 12, 6)
                 };
-                spMonths.Children.Add(cb);
-            }
 
-            // Eğer _assignment varsa, sadece tek ayı işaretle
-            if (_assignment != null)
-            {
-                foreach (CheckBox cb in spMonths.Children)
-                {
-                    if (cb.Tag is int month && month == _assignment.Month)
-                        cb.IsChecked = true;
-                }
+                spMonths.Children.Add(cb);
             }
         }
 
-
         private void LoadAssignmentData()
         {
-            if (_assignment == null) return;
+            if (_assignment == null)
+                return;
 
             cmbManager.SelectedValue = _assignment.ManagerId;
             cmbYear.SelectedItem = _assignment.Year;
@@ -111,14 +102,8 @@ namespace IzinProgrami
 
             var selectedMonths = spMonths.Children
                 .OfType<CheckBox>()
-                .Where(cb => cb.IsChecked == true)
-                .Select(cb =>
-                {
-                    if (cb.Tag is int i) return i;
-                    if (cb.Tag is string s && int.TryParse(s, out int n)) return n;
-                    return 0;
-                })
-                .Where(m => m > 0)
+                .Where(x => x.IsChecked == true)
+                .Select(x => Convert.ToInt32(x.Tag))
                 .ToList();
 
             if (!selectedMonths.Any())
@@ -129,17 +114,27 @@ namespace IzinProgrami
 
             try
             {
-                foreach (var month in selectedMonths)
+               
+
+                if (_assignment != null)
                 {
-                    _repository.SaveManagerAssignments(
+                    _repository.DeleteManagerAssignments(
                         _employeeId,
-                        manager.Id,
-                        year,
-                        new List<int> { month } // tek ay
-                    );
+                        _assignment.ManagerId,
+                        _assignment.Year);
                 }
 
+                
+               
+
+                _repository.SaveManagerAssignments(
+                    _employeeId,
+                    manager.Id,
+                    year,
+                    selectedMonths);
+
                 AssignmentSaved?.Invoke();
+
                 this.Close();
             }
             catch (Exception ex)
@@ -150,7 +145,7 @@ namespace IzinProgrami
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
-            this.Close();
+            Close();
         }
     }
 }
