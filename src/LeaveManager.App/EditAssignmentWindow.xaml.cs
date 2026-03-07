@@ -84,19 +84,35 @@ namespace IzinProgrami
 
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
+           
             if (cmbManager.SelectedItem is not Employee manager)
             {
                 MessageBox.Show("Müdür Yardımcısı seçin.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
+         
             if (cmbYear.SelectedItem is not int year)
+            {
+                MessageBox.Show("Geçerli bir yıl seçin.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
+            }
 
+            
             var selectedMonths = spMonths.Children
                 .OfType<CheckBox>()
                 .Where(cb => cb.IsChecked == true)
-                .Select(cb => (int)cb.Tag)
+                .Select(cb =>
+                {
+                    if (cb.Tag is int i) return i;
+
+                    
+                    if (cb.Tag is string s && int.TryParse(s, out int n)) return n;
+
+                   
+                    return 0;
+                })
+                .Where(m => m > 0) 
                 .ToList();
 
             if (!selectedMonths.Any())
@@ -107,17 +123,21 @@ namespace IzinProgrami
 
             try
             {
+                
                 foreach (var month in selectedMonths)
                 {
                     _repository.SaveManagerAssignments(
                         _employeeId,
                         manager.Id,
                         year,
-                        new List<int> { month } 
+                        new List<int> { month }
                     );
                 }
 
+                
                 AssignmentSaved?.Invoke();
+
+                
                 this.Close();
             }
             catch (Exception ex)
