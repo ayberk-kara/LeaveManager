@@ -97,6 +97,52 @@ namespace IzinProgrami
                 MessageBox.Show($"Yeni atama açılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        private void EditAssignment_Click(object sender, RoutedEventArgs e)
+        {
+            if (lstAssignments.SelectedItem is not EmployeeManagerAssignment assignment)
+                return;
+
+            var window = new EditAssignmentWindow(_employeeId, assignment);
+            window.Owner = this;
+
+            window.AssignmentSaved += () =>
+            {
+                LoadAssignments();
+            };
+
+            window.ShowDialog();
+        }
+        private void DeleteAssignment_Click(object sender, RoutedEventArgs e)
+        {
+            if (lstAssignments.SelectedItem == null) return;
+
+           
+            dynamic selected = lstAssignments.SelectedItem;
+            string displayText = selected.DisplayText;
+
+            
+            var assignment = _assignments.FirstOrDefault(a =>
+                $"{_repository.GetById(a.ManagerId)?.FullName} {CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(a.Month)} {a.Year}"
+                == displayText);
+
+            if (assignment == null) return;
+
+            var result = MessageBox.Show(
+                "Bu atamayı silmek istediğinize emin misiniz?",
+                "Onay",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                _repository.DeleteManagerAssignments(
+                    assignment.EmployeeId,
+                    assignment.ManagerId,
+                    assignment.Year);
+
+                LoadAssignments(); 
+            }
+        }
 
         private void LstAssignments_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
