@@ -3,10 +3,117 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:IzinProgrami"
         mc:Ignorable="d"
-        Title="EditAssignmentWindow" Height="450" Width="800">
-    <Grid>
-        
+        Title="Müdür Yardımcısı Ataması"
+        Height="455" Width="520"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F6F8"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="AccentBrush" Color="#2563EB"/>
+        <SolidColorBrush x:Key="BorderBrushSoft" Color="#E5E7EB"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#111827"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#6B7280"/>
+
+        <Style x:Key="ModernComboBox" TargetType="ComboBox">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="20,0"/>
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="20,0"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Border Background="White" CornerRadius="12" Padding="20" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1">
+            <StackPanel>
+
+                <!-- HEADER -->
+                <TextBlock Text="Müdür Yardımcısı Ataması"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimary}"/>
+                <TextBlock Text="Çalışan için yıl ve ay aralığı belirleyin"
+                           Margin="0,4,0,20"
+                           FontSize="13"
+                           Foreground="{StaticResource TextSecondary}"/>
+
+                <!-- YEAR -->
+                <TextBlock Text="Yıl"
+                           FontSize="13"
+                           Foreground="{StaticResource TextSecondary}"/>
+                <ComboBox x:Name="cmbYear"
+                          Style="{StaticResource ModernComboBox}"
+                          Margin="0,4,0,12"/>
+
+                <!-- MONTHS -->
+                <TextBlock Text="Aylar (birden fazla seçilebilir)"
+                           FontSize="13"
+                           Foreground="{StaticResource TextSecondary}"/>
+                <WrapPanel x:Name="spMonths" Margin="0,4,0,20">
+                    <!-- Aylar backend'de doldurulacak veya statik olarak eklenebilir -->
+                    <CheckBox Content="Ocak" Tag="1" Margin="0,0,12,6"/>
+                    <CheckBox Content="Şubat" Tag="2" Margin="0,0,12,6"/>
+                    <CheckBox Content="Mart" Tag="3" Margin="0,0,12,6"/>
+                    <CheckBox Content="Nisan" Tag="4" Margin="0,0,12,6"/>
+                    <CheckBox Content="Mayıs" Tag="5" Margin="0,0,12,6"/>
+                    <CheckBox Content="Haziran" Tag="6" Margin="0,0,12,6"/>
+                    <CheckBox Content="Temmuz" Tag="7" Margin="0,0,12,6"/>
+                    <CheckBox Content="Ağustos" Tag="8" Margin="0,0,12,6"/>
+                    <CheckBox Content="Eylül" Tag="9" Margin="0,0,12,6"/>
+                    <CheckBox Content="Ekim" Tag="10" Margin="0,0,12,6"/>
+                    <CheckBox Content="Kasım" Tag="11" Margin="0,0,12,6"/>
+                    <CheckBox Content="Aralık" Tag="12" Margin="0,0,12,6"/>
+                </WrapPanel>
+
+                <!-- ASSISTANT SELECTION -->
+                <TextBlock Text="Müdür Yardımcısı Seçimi"
+                           FontSize="13"
+                           Foreground="{StaticResource TextSecondary}"/>
+                <ComboBox x:Name="cmbManager"
+                          Style="{StaticResource ModernComboBox}"
+                          Margin="0,4,0,20"
+                          DisplayMemberPath="FullName"
+                          SelectedValuePath="Id"/>
+
+                <!-- BUTTONS -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="İptal"
+                            Width="100"
+                            Margin="0,0,12,0"
+                            Style="{StaticResource SecondaryButton}"
+                            Click="Cancel_Click"/>
+                    <Button Content="Kaydet"
+                            Width="120"
+                            Style="{StaticResource PrimaryButton}"
+                            Click="BtnSave_Click"/>
+                </StackPanel>
+
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>
