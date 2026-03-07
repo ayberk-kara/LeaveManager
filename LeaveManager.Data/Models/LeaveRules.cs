@@ -11,7 +11,7 @@ namespace LeaveManager.App
     {
         public string RuleName { get; }
 
-    protected LeaveRule(string ruleName)
+        protected LeaveRule(string ruleName)
         {
             RuleName = ruleName;
         }
@@ -91,33 +91,7 @@ namespace LeaveManager.App
 
             if (overlap)
             {
-                reason = "Bu izin, mevcut başka bir izinle tarih çakışması içeriyor.";
-                return false;
-            }
-
-            reason = string.Empty;
-            return true;
-        }
-    }
-
-    public class OneLeavePerDayRule : LeaveRule
-    {
-        public OneLeavePerDayRule() : base("Aynı Gün Tek İzin Kuralı") { }
-
-        public override bool Validate(
-            Employee employee,
-            IEnumerable<Employee> allEmployees,
-            IEnumerable<Leave> existingLeaves,
-            Leave newLeave,
-            out string reason)
-        {
-            bool overlap = existingLeaves.Any(l =>
-                newLeave.StartDate <= l.EndDate &&
-                newLeave.EndDate >= l.StartDate);
-
-            if (overlap)
-            {
-                reason = "Çalışan aynı tarihlerde birden fazla izin kullanamaz.";
+                reason = "Bu izin mevcut başka bir izinle çakışıyor.";
                 return false;
             }
 
@@ -149,49 +123,46 @@ namespace LeaveManager.App
             DateTime start = newLeave.StartDate.Date;
             DateTime end = newLeave.EndDate.Date;
 
-            var assignments = _employeeRepository
-                .GetManagerAssignments(employee.Id)
-                .Where(a => a.StartDate <= end && a.EndDate >= start)
-                .ToList();
+            var allAssignments = _employeeRepository.GetAllManagerAssignments();
 
-            if (!assignments.Any())
+            foreach (var day in EachDay(start, end))
             {
-                reason = "Çalışan izin tarihleri içinde herhangi bir müdür yardımcısına bağlı değil.";
-                return false;
-            }
+                var assignment = allAssignments.FirstOrDefault(a =>
+                    a.EmployeeId == employee.Id &&
+                    a.Year == day.Year &&
+                    a.Month == day.Month);
 
-            foreach (var assignment in assignments)
-            {
-                DateTime segmentStart = assignment.StartDate > start ? assignment.StartDate : start;
-                DateTime segmentEnd = assignment.EndDate < end ? assignment.EndDate : end;
+                if (assignment == null)
+                {
+                    reason = $"{day:dd.MM.yyyy} tarihinde çalışanın atanmış bir müdür yardımcısı yok.";
+                    return false;
+                }
+
+                int managerId = assignment.ManagerId;
 
                 var teamMembers = allEmployees
                     .Where(e => e.Id != employee.Id)
                     .Where(e =>
                     {
-                        var a = _employeeRepository.GetManagerAssignments(e.Id)
-                            .FirstOrDefault(x =>
-                                x.ManagerId == assignment.ManagerId &&
-                                x.StartDate <= segmentEnd &&
-                                x.EndDate >= segmentStart);
+                        var a = allAssignments.FirstOrDefault(x =>
+                            x.EmployeeId == e.Id &&
+                            x.Year == day.Year &&
+                            x.Month == day.Month);
 
-                        return a != null;
+                        return a != null && a.ManagerId == managerId;
                     })
                     .ToList();
 
-                foreach (var day in EachDay(segmentStart, segmentEnd))
-                {
-                    int count = teamMembers.Count(member =>
-                        member.Leaves.Any(l =>
-                            l.Type.Equals("Annual", StringComparison.OrdinalIgnoreCase) &&
-                            day >= l.StartDate &&
-                            day <= l.EndDate));
+                int count = teamMembers.Count(member =>
+                    member.Leaves.Any(l =>
+                        l.Type.Equals("Annual", StringComparison.OrdinalIgnoreCase) &&
+                        day >= l.StartDate &&
+                        day <= l.EndDate));
 
-                    if (count >= 2)
-                    {
-                        reason = $"{day:dd.MM.yyyy} tarihinde aynı müdür yardımcısına bağlı en fazla 2 kişi izin alabilir.";
-                        return false;
-                    }
+                if (count >= 2)
+                {
+                    reason = $"{day:dd.MM.yyyy} tarihinde aynı müdür yardımcısına bağlı en fazla 2 kişi izin alabilir.";
+                    return false;
                 }
             }
 
@@ -236,7 +207,7 @@ namespace LeaveManager.App
 
                     if (gap < 90)
                     {
-                        reason = "5 günden uzun iki izin arasında en az 3 ay (90 gün) olmalıdır.";
+                        reason = "5 günden uzun iki izin arasında en az 3 ay olmalıdır.";
                         return false;
                     }
                 }
@@ -246,6 +217,4 @@ namespace LeaveManager.App
             return true;
         }
     }
-
-
 }
