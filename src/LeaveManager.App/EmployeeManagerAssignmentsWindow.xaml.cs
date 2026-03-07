@@ -1,86 +1,79 @@
-﻿using System;
+﻿using LeaveManager.Data.Models;
+using LeaveManager.Data.Repositories;
+using LeaveManager.Data.Storage;
+using LeaveManager.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
-using LeaveManager.Data.Models;
-using LeaveManager.Data.Repositories;
+using System.Windows.Controls;
 
 namespace IzinProgrami
 {
+    /// <summary>
+    /// Interaction logic for EmployeeManagerAssignmentsWindow.xaml
+    /// </summary>
     public partial class EmployeeManagerAssignmentsWindow : Window
     {
+        private readonly EmployeeRepository _repository = new();
         private readonly int _employeeId;
-        private readonly EmployeeRepository _employeeRepo = new();
-        private List<EmployeeManagerAssignmentDisplay> _assignments = new();
+        private List<EmployeeManagerAssignment> _assignments = new();
 
         public EmployeeManagerAssignmentsWindow(int employeeId)
         {
             InitializeComponent();
             _employeeId = employeeId;
+
             LoadAssignments();
         }
 
         private void LoadAssignments()
         {
-            var dbAssignments = _employeeRepo.GetManagerAssignments(_employeeId);
-            var allEmployees = _employeeRepo.GetAllActive();
-
-            _assignments = dbAssignments.Select(a =>
+            _assignments = _repository.GetManagerAssignments(_employeeId);
+            lstAssignments.ItemsSource = _assignments.Select(a => new
             {
-                var manager = allEmployees.FirstOrDefault(m => m.Id == a.ManagerId);
-                string managerName = manager != null ? manager.FullName : "Bilinmiyor";
-
-                DateTime start = new DateTime(a.Year, a.Month, 1);
-                DateTime end = new DateTime(a.Year, a.Month, DateTime.DaysInMonth(a.Year, a.Month));
-
-                return new EmployeeManagerAssignmentDisplay
-                {
-                    Id = a.Id,
-                    ManagerId = a.ManagerId,
-                    ManagerName = managerName,
-                    Year = a.Year,
-                    Month = a.Month,
-                    Start = start,
-                    End = end
-                };
-            }).OrderBy(a => a.Year).ThenBy(a => a.Month).ToList();
-
-            lstAssignments.ItemsSource = _assignments;
+                a.Id,
+                DisplayText = $"{a.Year}-{a.Month:D2} → Müdür ID: {a.ManagerId}"
+            }).ToList();
         }
 
         private void BtnNewAssignment_Click(object sender, RoutedEventArgs e)
         {
-            var newAssignmentWindow = new EditAssignmentWindow(_employeeId);
-            newAssignmentWindow.Owner = this;
-            if (newAssignmentWindow.ShowDialog() == true)
+            try
             {
-                LoadAssignments();
+                var editWindow = new EditAssignmentWindow(_employeeId);
+                editWindow.Owner = this;
+                if (editWindow.ShowDialog() == true)
+                {
+                    LoadAssignments();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Yeni atama açılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void LstAssignments_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            if (lstAssignments.SelectedItem is EmployeeManagerAssignmentDisplay selected)
+            if (lstAssignments.SelectedItem == null) return;
+
+            dynamic selected = lstAssignments.SelectedItem;
+            int assignmentId = selected.Id;
+
+            try
             {
-                var editAssignmentWindow = new EditAssignmentWindow(_employeeId, selected);
-                editAssignmentWindow.Owner = this;
-                if (editAssignmentWindow.ShowDialog() == true)
+                var editWindow = new EditAssignmentWindow(_employeeId, assignmentId);
+                editWindow.Owner = this;
+                if (editWindow.ShowDialog() == true)
                 {
                     LoadAssignments();
                 }
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Atama düzenleme açılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
-    }
-
-    public class EmployeeManagerAssignmentDisplay
-    {
-        public int Id { get; set; }
-        public int ManagerId { get; set; }
-        public string ManagerName { get; set; } = string.Empty;
-        public int Year { get; set; }
-        public int Month { get; set; }
-        public DateTime Start { get; set; }
-        public DateTime End { get; set; }
-        public string DisplayText => $"{ManagerName}: {Start:MM.yyyy}";
     }
 }
