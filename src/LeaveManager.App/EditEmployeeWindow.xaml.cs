@@ -13,14 +13,12 @@ namespace LeaveManager.App
 {
     public partial class EditEmployeeWindow : Window
     {
-        
         public string UpdatedName { get; private set; } = string.Empty;
         public int UpdatedSicilNo { get; private set; }
         public EmployeeRole UpdatedRole { get; private set; }
         public int? UpdatedManagerId { get; private set; }
         public bool IsDeleteRequested { get; private set; }
 
-        
         public event Action<int>? EmployeeUpdated;
 
         private readonly EmployeeRepository _repository = new();
@@ -69,7 +67,6 @@ namespace LeaveManager.App
                 if (managerId.HasValue)
                     cmbManagerAssistant.SelectedValue = managerId.Value;
 
-               
                 btnManageAssignments.Visibility = Visibility.Visible;
             }
             else
@@ -110,9 +107,15 @@ namespace LeaveManager.App
         private void RoleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (cmbRole.SelectedItem?.ToString() == _roleMap[EmployeeRole.Employee])
+            {
                 ManagerAssistantPanel.Visibility = Visibility.Visible;
+                btnManageAssignments.Visibility = Visibility.Visible;
+            }
             else
+            {
                 ManagerAssistantPanel.Visibility = Visibility.Collapsed;
+                btnManageAssignments.Visibility = Visibility.Collapsed;
+            }
         }
 
         private void Save_Click(object sender, RoutedEventArgs e)
@@ -183,6 +186,7 @@ namespace LeaveManager.App
 
         private void ManageAssignments_Click(object sender, RoutedEventArgs e)
         {
+            
             if (_employeeRole != EmployeeRole.Employee) return;
 
             var assignmentsWindow = new EmployeeManagerAssignmentsWindow(_employeeId);

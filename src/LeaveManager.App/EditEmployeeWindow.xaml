@@ -104,9 +104,7 @@
                               Margin="0,6,0,20"
                               SelectionChanged="RoleComboBox_SelectionChanged"/>
 
-                    <!-- ========================= -->
                     <!-- ASSIGNMENT BUTTON -->
-                    <!-- ========================= -->
                     <Button x:Name="btnManageAssistantAssignments"
                             Content="Müdür Yardımcısı Atamalarını Yönet"
                             Width="280"
@@ -133,12 +131,9 @@
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
 
-                            <!-- Annual -->
-                            <StackPanel Grid.Column="0"
-                                        HorizontalAlignment="Center">
+                            <StackPanel Grid.Column="0" HorizontalAlignment="Center">
                                 <TextBox x:Name="txtRemainingAnnual"
-                                         Width="70"
-                                         Height="36"
+                                         Width="70" Height="36"
                                          FontSize="16"
                                          HorizontalContentAlignment="Center"
                                          VerticalContentAlignment="Center"
@@ -152,18 +147,14 @@
                                            HorizontalAlignment="Center"/>
                             </StackPanel>
 
-                            <!-- Divider -->
                             <Border Grid.Column="1"
                                     Width="1"
                                     Background="{StaticResource BorderBrushSoft}"
                                     HorizontalAlignment="Center"/>
 
-                            <!-- Sick -->
-                            <StackPanel Grid.Column="2"
-                                        HorizontalAlignment="Center">
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Center">
                                 <TextBox x:Name="txtRemainingSick"
-                                         Width="70"
-                                         Height="36"
+                                         Width="70" Height="36"
                                          FontSize="16"
                                          HorizontalContentAlignment="Center"
                                          VerticalContentAlignment="Center"
@@ -180,8 +171,7 @@
                     </Border>
 
                     <!-- BUTTONS -->
-                    <StackPanel Orientation="Horizontal"
-                                HorizontalAlignment="Right">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="Sil"
                                 Width="110"
                                 Margin="0,0,12,0"
