@@ -335,23 +335,6 @@ namespace LeaveManager.Data.Repositories
 
             cmd.ExecuteNonQuery();
         }
-        // -----------------------------
-        // DELETE ASSIGNMENT
-        // -----------------------------
-        public void DeleteAssignment(int assignmentId)
-        {
-            using var connection = new SqliteConnection(ConnectionString);
-            connection.Open();
-
-            using var cmd = connection.CreateCommand();
-            cmd.CommandText = @"
-            DELETE FROM EmployeeManagerAssignments
-            WHERE Id = @id;
-        ";
-
-            cmd.Parameters.AddWithValue("@id", assignmentId);
-            cmd.ExecuteNonQuery();
-        }
 
         // -----------------------------
         //  PRIVATE MAP METHOD
@@ -510,7 +493,30 @@ namespace LeaveManager.Data.Repositories
             }
         }
 
-        
+        // -----------------------------
+        //  DELETE ASSIGNMENTS FOR EMPLOYEE-MANAGER-YEAR
+        // -----------------------------
+        public void DeleteManagerAssignments(int employeeId, int managerId, int year)
+        {
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+        DELETE FROM EmployeeManagerAssignments
+        WHERE EmployeeId = @empId
+        AND ManagerId = @managerId
+        AND Year = @year;
+    ";
+
+            cmd.Parameters.AddWithValue("@empId", employeeId);
+            cmd.Parameters.AddWithValue("@managerId", managerId);
+            cmd.Parameters.AddWithValue("@year", year);
+
+            cmd.ExecuteNonQuery();
+        }
+
+
         // -----------------------------
         //  RESTORE DELETED METHOD
         // -----------------------------
