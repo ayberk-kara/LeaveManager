@@ -43,10 +43,8 @@ namespace IzinProgrami
             {
                 var editWindow = new EditAssignmentWindow(_employeeId);
                 editWindow.Owner = this;
-                if (editWindow.ShowDialog() == true)
-                {
-                    LoadAssignments();
-                }
+                editWindow.ShowDialog();
+                LoadAssignments();
             }
             catch (Exception ex)
             {
@@ -63,12 +61,18 @@ namespace IzinProgrami
 
             try
             {
-                var editWindow = new EditAssignmentWindow(_employeeId, assignmentId);
-                editWindow.Owner = this;
-                if (editWindow.ShowDialog() == true)
+                // assignmentId ile gerçek nesneyi alıyoruz
+                var assignment = _assignments.FirstOrDefault(a => a.Id == assignmentId);
+                if (assignment == null)
                 {
-                    LoadAssignments();
+                    MessageBox.Show("Seçilen atama bulunamadı.", "Hata", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
                 }
+
+                var editWindow = new EditAssignmentWindow(_employeeId, assignment);
+                editWindow.Owner = this;
+                editWindow.ShowDialog();
+                LoadAssignments();
             }
             catch (Exception ex)
             {
