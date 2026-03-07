@@ -11,6 +11,17 @@ using System.Windows.Controls;
 
 namespace IzinProgrami
 {
+    
+    public class AssignmentDisplayItem
+    {
+        public int EmployeeId { get; set; }
+        public int ManagerId { get; set; }
+        public int Year { get; set; }
+        public int MonthStart { get; set; }
+        public int MonthEnd { get; set; }
+        public string DisplayText { get; set; }
+    }
+
     public partial class EmployeeManagerAssignmentsWindow : Window
     {
         private readonly EmployeeRepository _repository = new();
@@ -34,12 +45,11 @@ namespace IzinProgrami
                 .SelectMany(g =>
                 {
                     var manager = _repository.GetById(g.Key);
-                    if (manager == null) return new List<dynamic>();
+                    if (manager == null) return new List<AssignmentDisplayItem>();
 
-                    // Tarihe göre sırala
                     var months = g.OrderBy(a => new DateTime(a.Year, a.Month, 1)).ToList();
 
-                    List<dynamic> ranges = new();
+                    List<AssignmentDisplayItem> ranges = new();
                     int startMonth = months[0].Month;
                     int startYear = months[0].Year;
                     int prevMonth = startMonth;
@@ -59,8 +69,13 @@ namespace IzinProgrami
                         }
                         else
                         {
-                            ranges.Add(new
+                            ranges.Add(new AssignmentDisplayItem
                             {
+                                EmployeeId = _employeeId,
+                                ManagerId = manager.Id,
+                                Year = prevYear,
+                                MonthStart = startMonth,
+                                MonthEnd = prevMonth,
                                 DisplayText = $"{manager.FullName} {CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(startMonth)} {startYear} - {CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(prevMonth)} {prevYear}"
                             });
                             startMonth = current.Month;
@@ -70,8 +85,13 @@ namespace IzinProgrami
                         }
                     }
 
-                    ranges.Add(new
+                    ranges.Add(new AssignmentDisplayItem
                     {
+                        EmployeeId = _employeeId,
+                        ManagerId = manager.Id,
+                        Year = prevYear,
+                        MonthStart = startMonth,
+                        MonthEnd = prevMonth,
                         DisplayText = $"{manager.FullName} {CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(startMonth)} {startYear} - {CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(prevMonth)} {prevYear}"
                     });
 
@@ -97,12 +117,13 @@ namespace IzinProgrami
                 MessageBox.Show($"Yeni atama açılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
         private void EditAssignment_Click(object sender, RoutedEventArgs e)
         {
-            if (lstAssignments.SelectedItem is not EmployeeManagerAssignment assignment)
-                return;
+            if (lstAssignments.SelectedItem is not AssignmentDisplayItem selected) return;
 
-            var window = new EditAssignmentWindow(_employeeId, assignment);
+            var window = new EditAssignmentWindow(_employeeId,
+                _assignments.First(a => a.ManagerId == selected.ManagerId && a.Year == selected.Year));
             window.Owner = this;
 
             window.AssignmentSaved += () =>
@@ -112,35 +133,26 @@ namespace IzinProgrami
 
             window.ShowDialog();
         }
+
         private void DeleteAssignment_Click(object sender, RoutedEventArgs e)
         {
             if (lstAssignments.SelectedItem == null) return;
 
-           
-            dynamic selected = lstAssignments.SelectedItem;
-            string displayText = selected.DisplayText;
+            var selected = lstAssignments.SelectedItem as AssignmentDisplayItem;
+            if (selected == null) return;
 
-            
-            var assignment = _assignments.FirstOrDefault(a =>
-                $"{_repository.GetById(a.ManagerId)?.FullName} {CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(a.Month)} {a.Year}"
-                == displayText);
+            var confirmWindow = new LeaveManager.App.DeleteAssignmentWindow();
+            confirmWindow.Owner = this;
+            bool? result = confirmWindow.ShowDialog();
 
-            if (assignment == null) return;
-
-            var result = MessageBox.Show(
-                "Bu atamayı silmek istediğinize emin misiniz?",
-                "Onay",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
-
-            if (result == MessageBoxResult.Yes)
+            if (result == true)
             {
                 _repository.DeleteManagerAssignments(
-                    assignment.EmployeeId,
-                    assignment.ManagerId,
-                    assignment.Year);
+                    selected.EmployeeId,
+                    selected.ManagerId,
+                    selected.Year);
 
-                LoadAssignments(); 
+                LoadAssignments();
             }
         }
 
@@ -148,12 +160,12 @@ namespace IzinProgrami
         {
             if (lstAssignments.SelectedItem == null) return;
 
-            dynamic selected = lstAssignments.SelectedItem;
-            string displayText = selected.DisplayText;
+            var selected = lstAssignments.SelectedItem as AssignmentDisplayItem;
+            if (selected == null) return;
 
             try
             {
-                MessageBox.Show($"Atama düzenleme: {displayText}", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show($"Atama düzenleme: {selected.DisplayText}", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
