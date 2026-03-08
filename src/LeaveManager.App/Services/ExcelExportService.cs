@@ -36,10 +36,8 @@ namespace LeaveManager.App.Services
             int index = 1;
 
             var employeeRepository = new EmployeeRepository();
-
             var managerColors = GenerateManagerColors(employees);
 
-           
             var managers = employees
                 .Where(e => e.Role == EmployeeRole.Assistant)
                 .OrderBy(e => e.FullName)
@@ -50,21 +48,18 @@ namespace LeaveManager.App.Services
                 .OrderBy(e => e.FullName)
                 .ToList();
 
-            
             foreach (var my in managers)
             {
                 sheet.Cell(row, 1).Value = index++;
                 sheet.Cell(row, 2).Value = my.FullName + " (M.Y.)";
-
                 ApplyRowColor(sheet, row, managerColors[my.Id]);
 
                 for (int month = 1; month <= 12; month++)
-                    sheet.Cell(row, month + 3).Style.Fill.BackgroundColor = managerColors[my.Id];
+                    sheet.Cell(row, month + 2).Style.Fill.BackgroundColor = managerColors[my.Id];
 
                 row++;
             }
 
-            
             foreach (var emp in personnel)
             {
                 sheet.Cell(row, 1).Value = index++;
@@ -74,28 +69,20 @@ namespace LeaveManager.App.Services
                 {
                     int? assignedMyId = employeeRepository.GetManagerIdForDate(emp.Id, new DateTime(year, month, 1));
                     if (assignedMyId.HasValue && managerColors.ContainsKey(assignedMyId.Value))
-                        sheet.Cell(row, month + 3).Style.Fill.BackgroundColor = managerColors[assignedMyId.Value];
+                        sheet.Cell(row, month + 2).Style.Fill.BackgroundColor = managerColors[assignedMyId.Value];
                     else
-                        sheet.Cell(row, month + 3).Style.Fill.BackgroundColor = XLColor.DarkRed;
+                        sheet.Cell(row, month + 2).Style.Fill.BackgroundColor = XLColor.DarkRed;
                 }
 
                 row++;
             }
 
-            
-            for (int r = 2; r < row; r++)
-            {
-                sheet.Cell(r, 16).Value = "";
-                sheet.Cell(r, 17).Value = "";
-            }
-
-            
             sheet.Cell(row, 2).Value = "TOPLAM";
-            sheet.Range(row, 1, row, 17).Style.Fill.BackgroundColor = XLColor.LightGray;
-            sheet.Range(row, 1, row, 17).Style.Font.Bold = true;
+            sheet.Range(row, 1, row, 14).Style.Fill.BackgroundColor = XLColor.LightGray;
+            sheet.Range(row, 1, row, 14).Style.Font.Bold = true;
 
             sheet.Columns().AdjustToContents();
-            var tableRange = sheet.Range(1, 1, row, 17);
+            var tableRange = sheet.Range(1, 1, row, 14);
             tableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             tableRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
 
@@ -123,8 +110,7 @@ namespace LeaveManager.App.Services
 
             foreach (var managerId in managerIds)
             {
-                var color = palette[colorIndex % palette.Length];
-                result[managerId] = color;
+                result[managerId] = palette[colorIndex % palette.Length];
                 colorIndex++;
             }
 
@@ -133,7 +119,7 @@ namespace LeaveManager.App.Services
 
         private static void ApplyRowColor(IXLWorksheet sheet, int row, XLColor color)
         {
-            sheet.Range(row, 1, row, 17).Style.Fill.BackgroundColor = color;
+            sheet.Range(row, 1, row, 14).Style.Fill.BackgroundColor = color;
         }
 
         private static void WriteHeader(IXLWorksheet sheet, int year)
@@ -142,8 +128,7 @@ namespace LeaveManager.App.Services
             {
                 "S. N.","ADI SOYAD",
                 "OCAK","ŞUBAT","MART","NİSAN","MAYIS","HAZİRAN",
-                "TEMMUZ","AĞUSTOS","EYLÜL","EKİM","KASIM","ARALIK",
-                $"{year} PLAN","KALAN"
+                "TEMMUZ","AĞUSTOS","EYLÜL","EKİM","KASIM","ARALIK"
             };
 
             for (int i = 0; i < headers.Length; i++)
