@@ -29,6 +29,7 @@ namespace LeaveManager.App.Services
                 //new NoPastStartRule(),
                 new NoOverlapRule(),
                 new LongLeaveGapRule(),
+                new ManagerAssignmentExistsRule()
             };
         }
 
