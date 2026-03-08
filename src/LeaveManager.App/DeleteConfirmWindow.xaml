@@ -27,11 +27,12 @@
                        FontWeight="SemiBold"
                        Foreground="#111827"/>
 
-            <TextBlock Grid.Row="2"
-                       Text="Bu personeli silmek istediğinize emin misiniz?"
-                       TextWrapping="Wrap"
-                       FontSize="14"
-                       Foreground="#6B7280"/>
+            <TextBlock x:Name="txtMessage"
+               Grid.Row="2"
+               Text="Bu personeli silmek istediğinize emin misiniz?"
+               TextWrapping="Wrap"
+               FontSize="14"
+               Foreground="#6B7280"/>
 
             <Grid Grid.Row="4">
                 <Grid.ColumnDefinitions>

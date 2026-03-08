@@ -1,35 +1,45 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using LeaveManager.Data.Repositories;
+using System;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-namespace LeaveManager.App;
-public partial class DeleteConfirmWindow : Window
+
+namespace LeaveManager.App
 {
-    public bool IsConfirmed { get; private set; }
-
-    public DeleteConfirmWindow()
+    public partial class DeleteConfirmWindow : Window
     {
-        InitializeComponent();
-    }
+        private readonly int _employeeId;
+        private readonly EmployeeRepository _repository = new();
 
-    private void Confirm_Click(object sender, RoutedEventArgs e)
-    {
-        IsConfirmed = true;
-        Close();
-    }
+        public bool Confirmed { get; private set; }
 
-    private void Cancel_Click(object sender, RoutedEventArgs e)
-    {
-        IsConfirmed = false;
-        Close();
+        public DeleteConfirmWindow(int employeeId)
+        {
+            InitializeComponent();
+            _employeeId = employeeId;
+
+            
+            txtMessage.Text = "Bu personeli silmek, onun tüm izinlerini, manager atamalarını ve tüm ilişkili verilerini kalıcı olarak silecektir. Devam etmek istediğinize emin misiniz?";
+        }
+
+        private void Cancel_Click(object sender, RoutedEventArgs e)
+        {
+            Confirmed = false;
+            DialogResult = false;
+        }
+
+        private void Confirm_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // HARD DELETE çağrısı
+                _repository.HardDelete(_employeeId);
+
+                Confirmed = true;
+                DialogResult = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Personel silinemedi: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
     }
 }
