@@ -16,7 +16,6 @@ namespace LeaveManager.App
         public string UpdatedName { get; private set; } = string.Empty;
         public int UpdatedSicilNo { get; private set; }
         public EmployeeRole UpdatedRole { get; private set; }
-        public int? UpdatedManagerId { get; private set; }
         public bool IsDeleteRequested { get; private set; }
 
         public event Action<int>? EmployeeUpdated;
@@ -26,15 +25,12 @@ namespace LeaveManager.App
 
         private LeaveBalance? _currentBalance;
         private readonly int _employeeId;
-        private readonly EmployeeRole _employeeRole;
 
         private readonly Dictionary<EmployeeRole, string> _roleMap = new()
         {
             { EmployeeRole.Assistant, "Müdür Yardımcısı" },
             { EmployeeRole.Employee, "Personel" }
         };
-
-        private List<Employee> _assistants = new();
 
         public EditEmployeeWindow(int employeeId,
                                   string fullName,
@@ -45,7 +41,6 @@ namespace LeaveManager.App
             InitializeComponent();
 
             _employeeId = employeeId;
-            _employeeRole = role;
 
             txtName.Text = fullName;
             txtRegistryNo.Text = sicilNo.ToString();
@@ -53,27 +48,21 @@ namespace LeaveManager.App
             cmbRole.ItemsSource = new List<string>(_roleMap.Values);
             cmbRole.SelectedItem = _roleMap[role];
 
-            _assistants = _repository.GetAssistants();
-            cmbManagerAssistant.ItemsSource = _assistants;
-            cmbManagerAssistant.DisplayMemberPath = "FullName";
-            cmbManagerAssistant.SelectedValuePath = "Id";
+            UpdateAssignmentButtonVisibility(role);
 
+            LoadCurrentBalance();
+        }
+
+        private void UpdateAssignmentButtonVisibility(EmployeeRole role)
+        {
             if (role == EmployeeRole.Employee)
             {
                 ManagerAssistantPanel.Visibility = Visibility.Visible;
-
-                if (managerId.HasValue)
-                    cmbManagerAssistant.SelectedValue = managerId.Value;
-
-                btnManageAssignments.Visibility = Visibility.Visible;
             }
             else
             {
                 ManagerAssistantPanel.Visibility = Visibility.Collapsed;
-                btnManageAssignments.Visibility = Visibility.Collapsed;
             }
-
-            LoadCurrentBalance();
         }
 
         private void LoadCurrentBalance()
@@ -104,15 +93,13 @@ namespace LeaveManager.App
 
         private void RoleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (cmbRole.SelectedItem?.ToString() == _roleMap[EmployeeRole.Employee])
+            foreach (var kv in _roleMap)
             {
-                ManagerAssistantPanel.Visibility = Visibility.Visible;
-                btnManageAssignments.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                ManagerAssistantPanel.Visibility = Visibility.Collapsed;
-                btnManageAssignments.Visibility = Visibility.Collapsed;
+                if (kv.Value == cmbRole.SelectedItem?.ToString())
+                {
+                    UpdateAssignmentButtonVisibility(kv.Key);
+                    break;
+                }
             }
         }
 
@@ -151,14 +138,13 @@ namespace LeaveManager.App
             UpdatedSicilNo = int.Parse(txtRegistryNo.Text);
 
             foreach (var kv in _roleMap)
+            {
                 if (kv.Value == cmbRole.SelectedItem?.ToString())
+                {
                     UpdatedRole = kv.Key;
-
-            if (UpdatedRole == EmployeeRole.Employee &&
-                cmbManagerAssistant.SelectedItem is Employee selected)
-                UpdatedManagerId = selected.Id;
-            else
-                UpdatedManagerId = null;
+                    break;
+                }
+            }
 
             IsDeleteRequested = false;
 
@@ -185,8 +171,6 @@ namespace LeaveManager.App
 
         private void ManageAssignments_Click(object sender, RoutedEventArgs e)
         {
-            if (_employeeRole != EmployeeRole.Employee) return;
-
             var assignmentsWindow = new EmployeeManagerAssignmentsWindow(_employeeId);
             assignmentsWindow.Owner = this;
             assignmentsWindow.ShowDialog();
