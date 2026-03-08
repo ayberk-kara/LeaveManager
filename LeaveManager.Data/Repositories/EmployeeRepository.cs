@@ -629,16 +629,15 @@ namespace LeaveManager.Data.Repositories
 
             using var cmd = connection.CreateCommand();
             cmd.CommandText = @"
-        SELECT DISTINCT strftime('%Y', Date) AS Year
+        SELECT DISTINCT year
         FROM Leaves
-        ORDER BY Year ASC;
+        ORDER BY year ASC;
     ";
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                if (int.TryParse(reader["Year"].ToString(), out int year))
-                    years.Add(year);
+                years.Add(reader.GetInt32(0));
             }
 
             return years;

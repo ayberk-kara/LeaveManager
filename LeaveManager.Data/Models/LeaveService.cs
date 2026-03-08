@@ -34,6 +34,7 @@ namespace LeaveManager.App.Services
 
         public bool TryAddLeave(Leave newLeave, out string errorMessage)
         {
+            newLeave.Year = newLeave.StartDate.Year;
             using var connection = new SqliteConnection(ConnectionString);
             connection.Open();
 

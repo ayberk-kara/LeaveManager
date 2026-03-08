@@ -14,9 +14,9 @@ namespace LeaveManager.Data.Repositories
 
             cmd.CommandText = @"
 INSERT INTO Leaves 
-(employee_id, start_date, end_date, days, type, created_utc)
+(employee_id, start_date, end_date, days, type, year, created_utc)
 VALUES 
-(@employeeId, @startDate, @endDate, @days, @type, @createdUtc);
+(@employeeId, @startDate, @endDate, @days, @type, @year, @createdUtc);
 ";
 
             cmd.Parameters.AddWithValue("@employeeId", leave.EmployeeId);
@@ -24,6 +24,7 @@ VALUES
             cmd.Parameters.AddWithValue("@endDate", leave.EndDate.ToString("yyyy-MM-dd"));
             cmd.Parameters.AddWithValue("@days", leave.Days);
             cmd.Parameters.AddWithValue("@type", leave.Type);
+            cmd.Parameters.AddWithValue("@year", leave.Year);
             cmd.Parameters.AddWithValue("@createdUtc", leave.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"));
 
             cmd.ExecuteNonQuery();
