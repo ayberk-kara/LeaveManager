@@ -61,6 +61,7 @@ namespace LeaveManager.App
             if (role == EmployeeRole.Employee)
             {
                 ManagerAssistantPanel.Visibility = Visibility.Visible;
+
                 if (managerId.HasValue)
                     cmbManagerAssistant.SelectedValue = managerId.Value;
 
@@ -160,7 +161,9 @@ namespace LeaveManager.App
                 UpdatedManagerId = null;
 
             IsDeleteRequested = false;
+
             EmployeeUpdated?.Invoke(_employeeId);
+
             DialogResult = true;
         }
 
@@ -200,8 +203,17 @@ namespace LeaveManager.App
 
             if (result == true && confirmWindow.Confirmed)
             {
-                MessageBox.Show("Personel ve tüm ilişkili verileri başarıyla silindi.", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
-                DialogResult = true; 
+                IsDeleteRequested = true;
+
+                EmployeeUpdated?.Invoke(_employeeId);
+
+                MessageBox.Show(
+                    "Personel ve tüm ilişkili verileri başarıyla silindi.",
+                    "Bilgi",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+
+                DialogResult = true;
             }
         }
 
