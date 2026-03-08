@@ -616,6 +616,33 @@ namespace LeaveManager.Data.Repositories
             return Convert.ToInt32(result);
         }
 
+
+        // -----------------------------
+        // GET DISTINCT YEARS FROM LEAVES
+        // -----------------------------
+        public List<int> GetYearsWithLeaves()
+        {
+            var years = new List<int>();
+
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+        SELECT DISTINCT strftime('%Y', Date) AS Year
+        FROM Leaves
+        ORDER BY Year ASC;
+    ";
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                if (int.TryParse(reader["Year"].ToString(), out int year))
+                    years.Add(year);
+            }
+
+            return years;
+        }
         // -----------------------------
         //  RESTORE DELETED METHOD
         // -----------------------------
