@@ -217,7 +217,7 @@ namespace LeaveManager.App
                 {
                     reason =
                         $"İzin eklenemiyor.\n\n" +
-                        $"{m.month:D2}/{m.year} ayı için çalışan adına atanmış bir MY (Manager) bulunamadı.\n\n" +
+                        $"{m.month:D2}/{m.year} ayı için çalışan adına atanmış bir MY bulunamadı.\n\n" +
                         $"İzin girmeden önce ilgili ay için MY ataması yapılmalıdır.";
 
                     return false;
