@@ -35,75 +35,65 @@ namespace LeaveManager.App.Services
             int row = 2;
             int index = 1;
 
-            var connectionString = $"Data Source={DbPaths.GetDbFilePath()}";
-            using var connection = new SqliteConnection(connectionString);
-            connection.Open();
+            var employeeRepository = new EmployeeRepository();
 
             var managerColors = GenerateManagerColors(employees);
 
-            
-            var managerGroups = employees
+           
+            var managers = employees
                 .Where(e => e.Role == EmployeeRole.Assistant)
                 .OrderBy(e => e.FullName)
-                .Select(my => new
-                {
-                    Manager = my,
-                    Subordinates = employees
-                        .Where(emp => emp.ManagerId == my.Id)
-                        .OrderBy(emp => emp.FullName)
-                        .ToList()
-                })
                 .ToList();
 
-            foreach (var group in managerGroups)
+            var personnel = employees
+                .Where(e => e.Role != EmployeeRole.Assistant)
+                .OrderBy(e => e.FullName)
+                .ToList();
+
+            
+            foreach (var my in managers)
             {
-                var my = group.Manager;
                 sheet.Cell(row, 1).Value = index++;
                 sheet.Cell(row, 2).Value = my.FullName + " (M.Y.)";
 
                 ApplyRowColor(sheet, row, managerColors[my.Id]);
 
-               
+                for (int month = 1; month <= 12; month++)
+                    sheet.Cell(row, month + 3).Style.Fill.BackgroundColor = managerColors[my.Id];
+
+                row++;
+            }
+
+            
+            foreach (var emp in personnel)
+            {
+                sheet.Cell(row, 1).Value = index++;
+                sheet.Cell(row, 2).Value = emp.FullName;
+
                 for (int month = 1; month <= 12; month++)
                 {
-                    sheet.Cell(row, month + 3).Style.Fill.BackgroundColor = managerColors[my.Id];
+                    int? assignedMyId = employeeRepository.GetManagerIdForDate(emp.Id, new DateTime(year, month, 1));
+                    if (assignedMyId.HasValue && managerColors.ContainsKey(assignedMyId.Value))
+                        sheet.Cell(row, month + 3).Style.Fill.BackgroundColor = managerColors[assignedMyId.Value];
+                    else
+                        sheet.Cell(row, month + 3).Style.Fill.BackgroundColor = XLColor.DarkRed;
                 }
 
                 row++;
-
-                
-                foreach (var emp in group.Subordinates)
-                {
-                    sheet.Cell(row, 1).Value = index++;
-                    sheet.Cell(row, 2).Value = emp.FullName;
-
-                    
-                    for (int month = 1; month <= 12; month++)
-                    {
-                        int? assignedMyId = emp.GetManagerForMonth(month, year); 
-                        if (assignedMyId.HasValue)
-                            sheet.Cell(row, month + 3).Style.Fill.BackgroundColor = managerColors[assignedMyId.Value];
-                        else
-                            sheet.Cell(row, month + 3).Style.Fill.BackgroundColor = XLColor.DarkRed;
-                    }
-
-                    row++;
-                }
             }
 
             
             for (int r = 2; r < row; r++)
             {
-                sheet.Cell(r, 16).Value = ""; 
-                sheet.Cell(r, 17).Value = ""; 
+                sheet.Cell(r, 16).Value = "";
+                sheet.Cell(r, 17).Value = "";
             }
 
-           
+            
             sheet.Cell(row, 2).Value = "TOPLAM";
             sheet.Range(row, 1, row, 17).Style.Fill.BackgroundColor = XLColor.LightGray;
             sheet.Range(row, 1, row, 17).Style.Font.Bold = true;
 
-            
             sheet.Columns().AdjustToContents();
             var tableRange = sheet.Range(1, 1, row, 17);
             tableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
