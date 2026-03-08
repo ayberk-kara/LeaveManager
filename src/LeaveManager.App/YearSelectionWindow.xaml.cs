@@ -17,8 +17,8 @@ namespace LeaveManager.App
 
         private void LoadYears()
         {
-            var leaveRepository = new LeaveRepository();
-            List<int> years = leaveRepository.GetYearsWithLeaves(); 
+            var employeeRepository = new EmployeeRepository();
+            List<int> years = employeeRepository.GetYearsWithLeaves();
             years.Sort();
             cmbYear.ItemsSource = years;
             if (years.Any())

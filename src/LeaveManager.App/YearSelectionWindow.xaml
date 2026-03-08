@@ -1,12 +1,89 @@
-﻿<Window x:Class="IzinProgrami.YearSelectionWindow"
+﻿<Window x:Class="LeaveManager.App.YearSelectionWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:IzinProgrami"
-        mc:Ignorable="d"
-        Title="YearSelectionWindow" Height="450" Width="800">
-    <Grid>
-        
+        Title="Yıl Seçimi"
+        Height="294"
+        Width="400"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F6F8"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="AccentBrush" Color="#2563EB"/>
+        <SolidColorBrush x:Key="BorderBrushSoft" Color="#E5E7EB"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#111827"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#6B7280"/>
+
+        <Style x:Key="ModernComboBox" TargetType="ComboBox">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="20,0"/>
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="20,0"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Border Background="White"
+                CornerRadius="12"
+                Padding="20"
+                BorderBrush="{StaticResource BorderBrushSoft}"
+                BorderThickness="1">
+
+            <StackPanel>
+                <TextBlock Text="Excel İçin Yıl Seçimi"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimary}"/>
+
+                <TextBlock Text="Excel kaydı için bir yıl seçin"
+                           Margin="0,4,0,20"
+                           FontSize="13"
+                           Foreground="{StaticResource TextSecondary}"/>
+
+                <TextBlock Text="Yıl"
+                           FontSize="13"
+                           Foreground="{StaticResource TextSecondary}"/>
+
+                <ComboBox x:Name="cmbYear"
+                          Style="{StaticResource ModernComboBox}"
+                          Margin="0,4,0,20"/>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="İptal"
+                            Width="100"
+                            Margin="0,0,12,0"
+                            Style="{StaticResource SecondaryButton}"
+                            Click="CancelButton_Click"/>
+                    <Button Content="Tamam"
+                            Width="120"
+                            Style="{StaticResource PrimaryButton}"
+                            Click="OkButton_Click"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

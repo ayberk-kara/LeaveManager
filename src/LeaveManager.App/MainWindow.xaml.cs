@@ -181,7 +181,19 @@ namespace LeaveManager.App
         {
             try
             {
-                _exportService.ExportAnnualPlanToExcel(_vm.Employees, 2026);
+                
+                var yearDialog = new YearSelectionWindow
+                {
+                    Owner = this
+                };
+
+                if (yearDialog.ShowDialog() != true)
+                    return;
+
+                if (yearDialog.SelectedYear == null)
+                    return;
+
+                _exportService.ExportAnnualPlanToExcel(_vm.Employees, yearDialog.SelectedYear.Value);
 
                 MessageBox.Show("Excel dosyası başarıyla oluşturuldu.",
                                 "Başarılı",
