@@ -177,6 +177,58 @@ namespace LeaveManager.App
         }
     }
 
+    public class ManagerAssignmentExistsRule : LeaveRule
+    {
+        private readonly EmployeeRepository _employeeRepository = new();
+
+        public ManagerAssignmentExistsRule()
+            : base("Manager Ataması Kontrolü") { }
+
+        public override bool Validate(
+            Employee employee,
+            IEnumerable<Employee> allEmployees,
+            IEnumerable<Leave> existingLeaves,
+            Leave newLeave,
+            out string reason)
+        {
+            var assignments = _employeeRepository.GetAllManagerAssignments();
+
+            DateTime start = newLeave.StartDate.Date;
+            DateTime end = newLeave.EndDate.Date;
+
+            var months = new List<(int year, int month)>();
+
+            var cursor = new DateTime(start.Year, start.Month, 1);
+
+            while (cursor <= end)
+            {
+                months.Add((cursor.Year, cursor.Month));
+                cursor = cursor.AddMonths(1);
+            }
+
+            foreach (var m in months)
+            {
+                bool exists = assignments.Any(a =>
+                    a.EmployeeId == employee.Id &&
+                    a.Year == m.year &&
+                    a.Month == m.month);
+
+                if (!exists)
+                {
+                    reason =
+                        $"İzin eklenemiyor.\n\n" +
+                        $"{m.month:D2}/{m.year} ayı için çalışan adına atanmış bir MY (Manager) bulunamadı.\n\n" +
+                        $"İzin girmeden önce ilgili ay için MY ataması yapılmalıdır.";
+
+                    return false;
+                }
+            }
+
+            reason = string.Empty;
+            return true;
+        }
+    }
+
     public class LongLeaveGapRule : LeaveRule
     {
         public LongLeaveGapRule() : base("Uzun İzinler Arası 3 Ay Kuralı") { }
