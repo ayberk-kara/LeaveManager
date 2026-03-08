@@ -585,6 +585,37 @@ namespace LeaveManager.Data.Repositories
             }
         }
 
+
+        // -----------------------------
+        // GET MANAGER FOR MONTH
+        // -----------------------------
+        public int? GetManagerForMonth(int employeeId, int month, int year)
+        {
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+        SELECT ManagerId
+        FROM EmployeeManagerAssignments
+        WHERE EmployeeId = @empId
+        AND Year = @year
+        AND Month = @month
+        LIMIT 1;
+    ";
+
+            cmd.Parameters.AddWithValue("@empId", employeeId);
+            cmd.Parameters.AddWithValue("@year", year);
+            cmd.Parameters.AddWithValue("@month", month);
+
+            var result = cmd.ExecuteScalar();
+
+            if (result == null || result == DBNull.Value)
+                return null;
+
+            return Convert.ToInt32(result);
+        }
+
         // -----------------------------
         //  RESTORE DELETED METHOD
         // -----------------------------
