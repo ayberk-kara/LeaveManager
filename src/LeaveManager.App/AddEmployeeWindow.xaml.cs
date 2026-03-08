@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using LeaveManager.Data.Repositories;
@@ -14,21 +13,20 @@ namespace LeaveManager.App
         public AddEmployeeWindow()
         {
             InitializeComponent();
-            LoadAssistants();
-        }
-
-        private void LoadAssistants()
-        {
-            var assistants = _repository.GetAssistants();
-            ManagerAssistantComboBox.ItemsSource = assistants;
         }
 
         private void RoleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (RoleComboBox.SelectedIndex == 1) // Personel
+            {
                 ManagerAssistantPanel.Visibility = Visibility.Visible;
+                ManagerAssistantComboBox.Visibility = Visibility.Collapsed;
+                ManagerAssistantInfoText.Visibility = Visibility.Visible;
+            }
             else
+            {
                 ManagerAssistantPanel.Visibility = Visibility.Collapsed;
+            }
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
@@ -40,7 +38,6 @@ namespace LeaveManager.App
         {
             try
             {
-               
                 if (!int.TryParse(SicilTextBox.Text.Trim(), out int sicilNo))
                     throw new Exception("Sicil numarası geçersiz.");
 
@@ -55,17 +52,9 @@ namespace LeaveManager.App
                     ? EmployeeRole.Assistant
                     : EmployeeRole.Employee;
 
+                
                 int? managerId = null;
 
-                if (role == EmployeeRole.Employee)
-                {
-                    if (ManagerAssistantComboBox.SelectedItem is not Employee assistant)
-                        throw new Exception("Bağlı müdür yardımcısı seçmelisiniz.");
-
-                    managerId = assistant.Id;
-                }
-
-                
                 var restoredOrNew = _repository.RestoreOrCreate(
                     sicilNo,
                     fullName,
@@ -76,7 +65,7 @@ namespace LeaveManager.App
                 if (restoredOrNew.WasRestored)
                 {
                     MessageBox.Show(
-                        $"Bu çalışan daha önce silinmişti. Kaydı geri getirildi.",
+                        "Bu çalışan daha önce silinmişti. Kaydı geri getirildi.",
                         "Bilgi",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);

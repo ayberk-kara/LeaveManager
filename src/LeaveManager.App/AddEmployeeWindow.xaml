@@ -77,14 +77,28 @@
                             <ComboBoxItem Content="Personel"/>
                         </ComboBox>
 
+                        <!-- MY PANEL -->
                         <StackPanel x:Name="ManagerAssistantPanel"
                                 Visibility="Collapsed">
 
                             <TextBlock Text="Bağlı Müdür Yardımcısı"/>
+
+                            <!-- Eski dropdown (artık gizli) -->
                             <ComboBox x:Name="ManagerAssistantComboBox"
                                   Height="40"
-                                  Margin="0,6,0,16"
-                                  DisplayMemberPath="FullName"/>
+                                  Margin="0,6,0,6"
+                                  DisplayMemberPath="FullName"
+                                  Visibility="Collapsed"/>
+
+                            <!-- Yeni bilgi mesajı -->
+                            <TextBlock x:Name="ManagerAssistantInfoText"
+                                   Text="Personele müdür yardımcısı ataması için personeli düzenleme menüsünü kullanınız."
+                                   TextWrapping="Wrap"
+                                   Foreground="#6B7280"
+                                   FontSize="12"
+                                   Margin="0,4,0,16"
+                                   Visibility="Collapsed"/>
+
                         </StackPanel>
 
                     </StackPanel>
