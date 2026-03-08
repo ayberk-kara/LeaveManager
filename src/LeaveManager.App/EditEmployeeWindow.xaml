@@ -40,7 +40,7 @@
         </Style>
 
         <Style x:Key="BaseButton" TargetType="Button">
-            <Setter Property="Height" Value="46"/>
+            <Setter Property="Height" Value="48"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="BorderThickness" Value="1"/>
@@ -72,11 +72,8 @@
                     <TextBlock Text="Personel Düzenle"
                                FontSize="24"
                                FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimary}"/>
-                    <TextBlock Text="Personel bilgilerini ve müdür yardımcısı atamalarını güncelleyin"
-                               Margin="0,8,0,30"
-                               FontSize="13"
-                               Foreground="{StaticResource TextSecondary}"/>
+                               Foreground="{StaticResource TextPrimary}"
+                               Margin="0,0,0,30"/>
 
                     <!-- SICIL -->
                     <TextBlock Text="Sicil No"
@@ -104,27 +101,19 @@
                               Margin="0,6,0,20"
                               SelectionChanged="RoleComboBox_SelectionChanged"/>
 
-                    <!-- MANAGER PANEL -->
+                    <!-- MY ASSIGNMENT BUTTON -->
                     <StackPanel x:Name="ManagerAssistantPanel"
-                                Visibility="Collapsed">
-
-                        <TextBlock Text="Müdür Yardımcısı Seçimi"
-                                   FontSize="13"
-                                   Foreground="{StaticResource TextSecondary}"/>
-                        <ComboBox x:Name="cmbManagerAssistant"
-                                  Style="{StaticResource ModernComboBox}"
-                                  Margin="0,6,0,20"
-                                  DisplayMemberPath="FullName"
-                                  SelectedValuePath="Id"/>
+                                Visibility="Collapsed"
+                                Margin="0,10,0,30">
 
                         <Button x:Name="btnManageAssignments"
                                 Content="Müdür Yardımcısı Atamalarını Yönet"
-                                Width="280"
-                                Height="46"
-                                Margin="0,20,0,30"
+                                Height="54"
+                                FontSize="15"
                                 Style="{StaticResource PrimaryButton}"
-                                HorizontalAlignment="Left"
+                                HorizontalAlignment="Stretch"
                                 Click="ManageAssignments_Click"/>
+
                     </StackPanel>
 
                     <!-- LEAVE BALANCE -->
@@ -132,10 +121,12 @@
                                FontSize="13"
                                Margin="0,10,0,10"
                                Foreground="{StaticResource TextSecondary}"/>
+
                     <Border Background="#F5F6F8"
                             CornerRadius="12"
                             Padding="20"
                             Margin="0,0,0,30">
+
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition/>
@@ -145,13 +136,15 @@
 
                             <StackPanel Grid.Column="0" HorizontalAlignment="Center">
                                 <TextBox x:Name="txtRemainingAnnual"
-                                         Width="70" Height="36"
+                                         Width="70"
+                                         Height="36"
                                          FontSize="16"
                                          HorizontalContentAlignment="Center"
                                          VerticalContentAlignment="Center"
                                          MaxLength="2"
                                          Background="White"
                                          BorderBrush="{StaticResource BorderBrushSoft}"/>
+
                                 <TextBlock Text="Yıllık"
                                            FontSize="12"
                                            Margin="0,6,0,0"
@@ -166,43 +159,52 @@
 
                             <StackPanel Grid.Column="2" HorizontalAlignment="Center">
                                 <TextBox x:Name="txtRemainingSick"
-                                         Width="70" Height="36"
+                                         Width="70"
+                                         Height="36"
                                          FontSize="16"
                                          HorizontalContentAlignment="Center"
                                          VerticalContentAlignment="Center"
                                          MaxLength="2"
                                          Background="White"
                                          BorderBrush="{StaticResource BorderBrushSoft}"/>
+
                                 <TextBlock Text="Raporlu"
                                            FontSize="12"
                                            Margin="0,6,0,0"
                                            Foreground="{StaticResource TextSecondary}"
                                            HorizontalAlignment="Center"/>
                             </StackPanel>
+
                         </Grid>
+
                     </Border>
 
                     <!-- BUTTONS -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+
                         <Button Content="Sil"
                                 Width="110"
                                 Margin="0,0,12,0"
                                 Style="{StaticResource DangerButton}"
                                 Click="Delete_Click"/>
+
                         <Button Content="İptal"
                                 Width="120"
                                 Margin="0,0,12,0"
                                 Style="{StaticResource SecondaryButton}"
                                 Click="Cancel_Click"/>
+
                         <Button Content="İzinleri Yönet"
                                 Width="140"
                                 Margin="0,0,12,0"
                                 Style="{StaticResource PrimaryButton}"
                                 Click="ManageLeaves_Click"/>
+
                         <Button Content="Kaydet"
                                 Width="140"
                                 Style="{StaticResource PrimaryButton}"
                                 Click="Save_Click"/>
+
                     </StackPanel>
 
                 </StackPanel>

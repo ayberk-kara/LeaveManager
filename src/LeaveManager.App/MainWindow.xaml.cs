@@ -46,34 +46,36 @@ namespace LeaveManager.App
                 return;
 
             var dialog = new EditEmployeeWindow(
-      _vm.SelectedEmployee.Id,
-      _vm.SelectedEmployee.FullName,
-      _vm.SelectedEmployee.SicilNo,
-      _vm.SelectedEmployee.Role,
-      _vm.SelectedEmployee.ManagerId)
+                _vm.SelectedEmployee.Id,
+                _vm.SelectedEmployee.FullName,
+                _vm.SelectedEmployee.SicilNo,
+                _vm.SelectedEmployee.Role,
+                null)   // artık kullanılmıyor
             {
                 Owner = this
             };
 
-            // Event 
+            // Event
             dialog.EmployeeUpdated += (id) =>
             {
-                
-                _vm.ReloadSelectedEmployeeLeavesFromDatabase(); 
-                HighlightSelectedEmployeeLeaves(); 
+                _vm.ReloadSelectedEmployeeLeavesFromDatabase();
+                HighlightSelectedEmployeeLeaves();
             };
 
             if (dialog.ShowDialog() == true)
             {
                 if (dialog.IsDeleteRequested)
+                {
                     _vm.DeleteEmployee(_vm.SelectedEmployee.Id);
+                }
                 else
+                {
                     _vm.UpdateEmployee(
                         _vm.SelectedEmployee.Id,
                         dialog.UpdatedName,
                         dialog.UpdatedSicilNo,
-                        dialog.UpdatedRole,
-                        dialog.UpdatedManagerId);
+                        dialog.UpdatedRole);
+                }
             }
         }
 
@@ -310,18 +312,21 @@ namespace LeaveManager.App
             }
         }
 
-        public void UpdateEmployee(int id, string fullName, int sicilNo, EmployeeRole role, int? managerId)
+        public void UpdateEmployee(int id, string fullName, int sicilNo, EmployeeRole role)
         {
+            
             var employee = _employeeRepository.GetById(id);
             if (employee == null) return;
 
+            
             employee.FullName = fullName;
             employee.SicilNo = sicilNo;
             employee.Role = role;
-            employee.ManagerId = managerId;
 
+            
             _employeeRepository.Update(employee);
 
+            
             ReloadEmployeesFromDatabase();
         }
 
