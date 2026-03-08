@@ -322,11 +322,9 @@ namespace LeaveManager.App
             employee.FullName = fullName;
             employee.SicilNo = sicilNo;
             employee.Role = role;
-
-            
+     
             _employeeRepository.Update(employee);
-
-            
+                   
             ReloadEmployeesFromDatabase();
         }
 
