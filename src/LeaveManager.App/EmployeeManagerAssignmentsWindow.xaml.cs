@@ -19,7 +19,7 @@ namespace IzinProgrami
         public int Year { get; set; }
         public int MonthStart { get; set; }
         public int MonthEnd { get; set; }
-        public string DisplayText { get; set; }
+        public string DisplayText { get; set; } = string.Empty;
     }
 
     public partial class EmployeeManagerAssignmentsWindow : Window
