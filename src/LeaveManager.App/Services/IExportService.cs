@@ -5,6 +5,6 @@ namespace LeaveManager.App.Services
 {
     public interface IExportService
     {
-        void ExportAnnualPlanToExcel(IEnumerable<EmployeeItem> employees, int year);
+        public bool ExportAnnualPlanToExcel(IEnumerable<EmployeeItem> employees, int year);
     }
 }

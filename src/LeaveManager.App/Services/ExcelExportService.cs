@@ -15,14 +15,14 @@ namespace LeaveManager.App.Services
     {
         private readonly LeaveRepository _leaveRepository = new();
 
-        public void ExportAnnualPlanToExcel(IEnumerable<EmployeeItem> employees, int year)
+        public bool ExportAnnualPlanToExcel(IEnumerable<EmployeeItem> employees, int year)
         {
             var dialog = new SaveFileDialog
             {
                 Filter = "Excel Files (*.xlsx)|*.xlsx",
                 FileName = $"Izin_Plani_{year}.xlsx"
             };
-            if (dialog.ShowDialog() != true) return;
+            if (dialog.ShowDialog() != true) return false;
 
             using var workbook = new XLWorkbook();
             var sheet = workbook.Worksheets.Add("İzin Planı");
@@ -31,10 +31,6 @@ namespace LeaveManager.App.Services
 
             int row = 2;
             int index = 1;
-
-            var connectionString = $"Data Source={DbPaths.GetDbFilePath()}";
-            using var connection = new SqliteConnection(connectionString);
-            connection.Open();
 
             var employeeRepository = new EmployeeRepository();
             var managerColors = GenerateManagerColors(employees);
@@ -49,24 +45,60 @@ namespace LeaveManager.App.Services
                 .OrderBy(e => e.FullName)
                 .ToList();
 
+            var connectionString = $"Data Source={DbPaths.GetDbFilePath()}";
+            using var connection = new SqliteConnection(connectionString);
+            connection.Open();
+
             int[] monthlyTotals = new int[12];
-            int grandTotal = 0;
+            int grandPlanned = 0;
             int grandRemaining = 0;
 
-            // 🔹 M.Y. satırları
+            
             foreach (var my in managers)
             {
                 sheet.Cell(row, 1).Value = index++;
                 sheet.Cell(row, 2).Value = my.FullName + " (M.Y.)";
-                ApplyRowColor(sheet, row, managerColors[my.Id]);
 
                 for (int month = 1; month <= 12; month++)
-                    sheet.Cell(row, month + 3).Style.Fill.BackgroundColor = managerColors[my.Id];
+                {
+                    sheet.Cell(row, month + 2).Style.Fill.BackgroundColor = managerColors[my.Id];
+                }
+
+                
+                var leaves = _leaveRepository.GetByEmployeeId(connection, my.Id);
+                var annualLeaves = leaves
+                    .Where(l => l.Type.ToLower().Contains("yıllık") &&
+                                (l.StartDate.Year <= year && l.EndDate.Year >= year))
+                    .ToList();
+
+                int yearlyPlanned = CalculateYearlyTotalDays(annualLeaves, year);
+                int remaining = GetRemainingAnnualLeave(connection, my.Id, year);
+
+                sheet.Cell(row, 15).Value = yearlyPlanned;
+                sheet.Cell(row, 15).Style.Fill.BackgroundColor = XLColor.LightGray;
+
+                sheet.Cell(row, 16).Value = remaining;
+                sheet.Cell(row, 16).Style.Fill.BackgroundColor = XLColor.LightGray;
+
+                
+                var monthly = BuildMonthlySummary(annualLeaves, year);
+                for (int month = 1; month <= 12; month++)
+                {
+                    if (monthly.ContainsKey(month))
+                        sheet.Cell(row, month + 2).Value = monthly[month];
+
+                    
+                    if (monthly.ContainsKey(month))
+                        monthlyTotals[month - 1] += ExtractDaysFromText(monthly[month]);
+                }
+
+                grandPlanned += yearlyPlanned;
+                grandRemaining += remaining;
 
                 row++;
             }
 
-            // 🔹 Personel satırları
+            
             foreach (var emp in personnel)
             {
                 sheet.Cell(row, 1).Value = index++;
@@ -78,38 +110,36 @@ namespace LeaveManager.App.Services
                                 (l.StartDate.Year <= year && l.EndDate.Year >= year))
                     .ToList();
 
+                int yearlyPlanned = CalculateYearlyTotalDays(annualLeaves, year);
+                int remaining = GetRemainingAnnualLeave(connection, emp.Id, year);
+
                 var monthly = BuildMonthlySummary(annualLeaves, year);
-                int yearlyTotal = CalculateYearlyTotalDays(annualLeaves, year);
 
-                sheet.Cell(row, 3).Value = yearlyTotal;
-                grandTotal += yearlyTotal;
-
-                // 🔹 Ay hücreleri, bağlı olunan M.Y.'ye göre renklendirme ve izin günleri yazısı
                 for (int month = 1; month <= 12; month++)
                 {
                     if (monthly.ContainsKey(month))
-                        sheet.Cell(row, month + 3).Value = monthly[month];
+                        sheet.Cell(row, month + 2).Value = monthly[month];
 
                     int? assignedMyId = employeeRepository.GetManagerIdForDate(emp.Id, new DateTime(year, month, 1));
                     if (assignedMyId.HasValue && managerColors.ContainsKey(assignedMyId.Value))
-                        sheet.Cell(row, month + 3).Style.Fill.BackgroundColor = managerColors[assignedMyId.Value];
+                        sheet.Cell(row, month + 2).Style.Fill.BackgroundColor = managerColors[assignedMyId.Value];
                     else
-                        sheet.Cell(row, month + 3).Style.Fill.BackgroundColor = XLColor.DarkRed;
+                        sheet.Cell(row, month + 2).Style.Fill.BackgroundColor = XLColor.DarkRed;
 
-                    sheet.Cell(row, month + 3).Style.Alignment.WrapText = true;
+                    sheet.Cell(row, month + 2).Style.Alignment.WrapText = true;
 
                     if (monthly.ContainsKey(month))
                         monthlyTotals[month - 1] += ExtractDaysFromText(monthly[month]);
                 }
 
-                // 🔹 Plan ve Kalan sütunları
-                int remaining = GetRemainingAnnualLeave(connection, emp.Id, year);
-                sheet.Cell(row, 16).Value = yearlyTotal;
+                // Plan ve Kalan
+                sheet.Cell(row, 15).Value = yearlyPlanned;
+                sheet.Cell(row, 15).Style.Fill.BackgroundColor = XLColor.LightGray;
+
+                sheet.Cell(row, 16).Value = remaining;
                 sheet.Cell(row, 16).Style.Fill.BackgroundColor = XLColor.LightGray;
 
-                sheet.Cell(row, 17).Value = remaining;
-                sheet.Cell(row, 17).Style.Fill.BackgroundColor = XLColor.LightGray;
-
+                grandPlanned += yearlyPlanned;
                 grandRemaining += remaining;
 
                 row++;
@@ -118,19 +148,19 @@ namespace LeaveManager.App.Services
             // 🔹 TOPLAM satırı
             sheet.Cell(row, 2).Value = "TOPLAM";
             sheet.Cell(row, 2).Style.Font.Bold = true;
-            sheet.Cell(row, 3).Value = grandTotal;
 
             for (int i = 0; i < 12; i++)
-                sheet.Cell(row, i + 4).Value = monthlyTotals[i];
+                sheet.Cell(row, i + 3).Value = monthlyTotals[i];
 
-            sheet.Cell(row, 16).Value = grandTotal;
-            sheet.Cell(row, 17).Value = grandRemaining;
+            sheet.Cell(row, 15).Value = grandPlanned;
+            sheet.Cell(row, 16).Value = grandRemaining;
 
-            sheet.Range(row, 1, row, 17).Style.Font.Bold = true;
-            sheet.Range(row, 1, row, 17).Style.Fill.BackgroundColor = XLColor.LightGray;
+            sheet.Range(row, 1, row, 16).Style.Font.Bold = true;
+            sheet.Range(row, 1, row, 16).Style.Fill.BackgroundColor = XLColor.LightGray;
 
             sheet.Columns().AdjustToContents();
             workbook.SaveAs(dialog.FileName);
+            return true;
         }
 
         private static Dictionary<int, XLColor> GenerateManagerColors(IEnumerable<EmployeeItem> employees)
@@ -159,11 +189,6 @@ namespace LeaveManager.App.Services
             }
 
             return result;
-        }
-
-        private static void ApplyRowColor(IXLWorksheet sheet, int row, XLColor color)
-        {
-            sheet.Range(row, 1, row, 17).Style.Fill.BackgroundColor = color;
         }
 
         private static int ExtractDaysFromText(string text)
@@ -264,7 +289,7 @@ namespace LeaveManager.App.Services
         {
             string[] headers =
             {
-                "S. N.","ADI SOYAD","TOPLAM İZİN",
+                "S. N.","ADI SOYAD",
                 "OCAK","ŞUBAT","MART","NİSAN","MAYIS","HAZİRAN",
                 "TEMMUZ","AĞUSTOS","EYLÜL","EKİM","KASIM","ARALIK",
                 $"{year} PLAN","KALAN"

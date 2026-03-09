@@ -181,7 +181,6 @@ namespace LeaveManager.App
         {
             try
             {
-                
                 var yearDialog = new YearSelectionWindow
                 {
                     Owner = this
@@ -193,12 +192,18 @@ namespace LeaveManager.App
                 if (yearDialog.SelectedYear == null)
                     return;
 
-                _exportService.ExportAnnualPlanToExcel(_vm.Employees, yearDialog.SelectedYear.Value);
+                bool created = _exportService.ExportAnnualPlanToExcel(
+                    _vm.Employees,
+                    yearDialog.SelectedYear.Value
+                );
 
-                MessageBox.Show("Excel dosyası başarıyla oluşturuldu.",
-                                "Başarılı",
-                                MessageBoxButton.OK,
-                                MessageBoxImage.Information);
+                if (created)
+                {
+                    MessageBox.Show("Excel dosyası başarıyla oluşturuldu.",
+                                    "Başarılı",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Information);
+                }
             }
             catch (Exception ex)
             {
