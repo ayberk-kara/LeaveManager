@@ -145,7 +145,7 @@ namespace LeaveManager.App.Services
                 row++;
             }
 
-            // 🔹 TOPLAM satırı
+            // TOPLAM satırı
             sheet.Cell(row, 2).Value = "TOPLAM";
             sheet.Cell(row, 2).Style.Font.Bold = true;
 

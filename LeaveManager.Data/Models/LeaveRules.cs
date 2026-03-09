@@ -85,7 +85,9 @@ namespace LeaveManager.App
             Leave newLeave,
             out string reason)
         {
-            bool overlap = existingLeaves.Any(l =>
+            var leaves = existingLeaves as IList<Leave> ?? existingLeaves.ToList();
+
+            bool overlap = leaves.Any(l =>
                 newLeave.StartDate <= l.EndDate &&
                 newLeave.EndDate >= l.StartDate);
 
@@ -125,12 +127,15 @@ namespace LeaveManager.App
 
             var allAssignments = _employeeRepository.GetAllManagerAssignments();
 
+            var assignmentLookup = allAssignments.ToLookup(a =>
+                (a.EmployeeId, a.Year, a.Month));
+
+            var employees = allEmployees as IList<Employee> ?? allEmployees.ToList();
+
             foreach (var day in EachDay(start, end))
             {
-                var assignment = allAssignments.FirstOrDefault(a =>
-                    a.EmployeeId == employee.Id &&
-                    a.Year == day.Year &&
-                    a.Month == day.Month);
+                var assignment = assignmentLookup[(employee.Id, day.Year, day.Month)]
+                    .FirstOrDefault();
 
                 if (assignment == null)
                 {
@@ -140,14 +145,12 @@ namespace LeaveManager.App
 
                 int managerId = assignment.ManagerId;
 
-                var teamMembers = allEmployees
+                var teamMembers = employees
                     .Where(e => e.Id != employee.Id)
                     .Where(e =>
                     {
-                        var a = allAssignments.FirstOrDefault(x =>
-                            x.EmployeeId == e.Id &&
-                            x.Year == day.Year &&
-                            x.Month == day.Month);
+                        var a = assignmentLookup[(e.Id, day.Year, day.Month)]
+                            .FirstOrDefault();
 
                         return a != null && a.ManagerId == managerId;
                     })
@@ -193,6 +196,11 @@ namespace LeaveManager.App
         {
             var assignments = _employeeRepository.GetAllManagerAssignments();
 
+            var assignmentSet = assignments
+                .Where(a => a.EmployeeId == employee.Id)
+                .Select(a => (a.Year, a.Month))
+                .ToHashSet();
+
             DateTime start = newLeave.StartDate.Date;
             DateTime end = newLeave.EndDate.Date;
 
@@ -208,12 +216,7 @@ namespace LeaveManager.App
 
             foreach (var m in months)
             {
-                bool exists = assignments.Any(a =>
-                    a.EmployeeId == employee.Id &&
-                    a.Year == m.year &&
-                    a.Month == m.month);
-
-                if (!exists)
+                if (!assignmentSet.Contains((m.year, m.month)))
                 {
                     reason =
                         $"İzin eklenemiyor.\n\n" +
@@ -240,9 +243,11 @@ namespace LeaveManager.App
             Leave newLeave,
             out string reason)
         {
+            var leaves = existingLeaves as IList<Leave> ?? existingLeaves.ToList();
+
             int newDuration = (newLeave.EndDate - newLeave.StartDate).Days + 1;
 
-            foreach (var leave in existingLeaves)
+            foreach (var leave in leaves)
             {
                 int existingDuration = (leave.EndDate - leave.StartDate).Days + 1;
 
