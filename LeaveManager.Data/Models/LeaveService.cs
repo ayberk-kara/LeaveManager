@@ -198,11 +198,14 @@ namespace LeaveManager.App.Services
             if (prev != null)
             {
                 carry = prev.AnnualEntitled
-                        + prev.AnnualManualAdjust
-                        - prev.AnnualUsed;
+                + prev.AnnualManualAdjust
+                 - prev.AnnualUsed;
 
                 if (carry < 0)
                     carry = 0;
+
+                if (carry > 30)
+                    carry = 30;
             }
 
             _balanceRepository.Create(connection, tx, new LeaveBalance
