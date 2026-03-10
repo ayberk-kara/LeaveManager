@@ -158,11 +158,18 @@ namespace LeaveManager.App.Services
             sheet.Range(row, 1, row, 16).Style.Font.Bold = true;
             sheet.Range(row, 1, row, 16).Style.Fill.BackgroundColor = XLColor.LightGray;
 
-            foreach (var r in sheet.Rows())
+
+            foreach (var col in sheet.ColumnsUsed().Where(c => c.ColumnNumber() != 1))
             {
-                r.Height = r.Height * 2;
-                r.Style.Alignment.Vertical = ClosedXML.Excel.XLAlignmentVerticalValues.Center; 
+                col.Width = col.Width * 2.7;
             }
+
+
+            foreach (var xLRow in sheet.RowsUsed())
+            {
+                xLRow.Height = xLRow.Height * 2;
+            }
+
             workbook.SaveAs(dialog.FileName);
             return true;
         }
