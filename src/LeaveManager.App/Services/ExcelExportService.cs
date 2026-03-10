@@ -145,7 +145,7 @@ namespace LeaveManager.App.Services
                 row++;
             }
 
-            // TOPLAM satırı
+             
             sheet.Cell(row, 2).Value = "TOPLAM";
             sheet.Cell(row, 2).Style.Font.Bold = true;
 
@@ -159,9 +159,14 @@ namespace LeaveManager.App.Services
             sheet.Range(row, 1, row, 16).Style.Fill.BackgroundColor = XLColor.LightGray;
 
 
-            foreach (var col in sheet.ColumnsUsed().Where(c => c.ColumnNumber() != 1))
+             
+            sheet.Column(2).Width = sheet.Column(2).Width * 3;
+
+             
+            foreach (var col in sheet.ColumnsUsed()
+                         .Where(c => c.ColumnNumber() != 1 && c.ColumnNumber() != 2 && c.ColumnNumber() != 15 && c.ColumnNumber() != 16))
             {
-                col.Width = col.Width * 2.7;
+                col.Width = col.Width * 2;
             }
 
 
@@ -170,6 +175,16 @@ namespace LeaveManager.App.Services
                 xLRow.Height = xLRow.Height * 2;
             }
 
+            sheet.Cells().Style.Font.FontName = "Times New Roman";
+            sheet.Cells().Style.Font.FontSize = 12;
+
+
+            var lastRow = sheet.LastRowUsed()?.RowNumber() ?? 1;      
+            var lastCol = sheet.LastColumnUsed()?.ColumnNumber() ?? 1; 
+
+            var totalUsedRange = sheet.Range(1, 1, sheet.LastRowUsed().RowNumber(), sheet.LastColumnUsed().ColumnNumber());
+            totalUsedRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            totalUsedRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
             workbook.SaveAs(dialog.FileName);
             return true;
         }
@@ -307,7 +322,7 @@ namespace LeaveManager.App.Services
                 "S. N.","ADI SOYAD",
                 "OCAK","ŞUBAT","MART","NİSAN","MAYIS","HAZİRAN",
                 "TEMMUZ","AĞUSTOS","EYLÜL","EKİM","KASIM","ARALIK",
-                $"{year} PLAN","KALAN"
+                $"{year}","KALAN"
             };
 
             for (int i = 0; i < headers.Length; i++)
