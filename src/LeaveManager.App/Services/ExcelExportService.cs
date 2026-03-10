@@ -158,7 +158,11 @@ namespace LeaveManager.App.Services
             sheet.Range(row, 1, row, 16).Style.Font.Bold = true;
             sheet.Range(row, 1, row, 16).Style.Fill.BackgroundColor = XLColor.LightGray;
 
-            sheet.Columns().AdjustToContents();
+            foreach (var r in sheet.Rows())
+            {
+                r.Height = r.Height * 2;
+                r.Style.Alignment.Vertical = ClosedXML.Excel.XLAlignmentVerticalValues.Center; 
+            }
             workbook.SaveAs(dialog.FileName);
             return true;
         }
