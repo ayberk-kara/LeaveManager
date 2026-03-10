@@ -170,14 +170,18 @@ namespace LeaveManager.App.Services
                 .Select(e => e.Id)
                 .ToList();
 
+            
             var palette = new[]
             {
-                XLColor.FromHtml("#D9EAD3"),
-                XLColor.FromHtml("#CFE2F3"),
-                XLColor.FromHtml("#FCE5CD"),
-                XLColor.FromHtml("#EAD1DC"),
-                XLColor.FromHtml("#FFF2CC")
-            };
+        XLColor.FromHtml("#D9EAD3"),
+        XLColor.FromHtml("#CFE2F3"),
+        XLColor.FromHtml("#FCE5CD"),
+        XLColor.FromHtml("#EAD1DC"),
+        XLColor.FromHtml("#FFF2CC"),
+        XLColor.FromHtml("#F4CCCC"),
+        XLColor.FromHtml("#D0E0E3"),
+        XLColor.FromHtml("#F9CB9C")
+    };
 
             var result = new Dictionary<int, XLColor>();
             int colorIndex = 0;
