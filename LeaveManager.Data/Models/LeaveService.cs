@@ -315,7 +315,8 @@ WHERE id = $id;
                 balance.AnnualUsed += leave.Days;
             }
             else if (leave.Type.Equals("Hastalık", StringComparison.OrdinalIgnoreCase)
-                     || leave.Type.Equals("Sick", StringComparison.OrdinalIgnoreCase))
+                     || leave.Type.Equals("Sick", StringComparison.OrdinalIgnoreCase)
+                     || leave.Type.Equals("Raporlu", StringComparison.OrdinalIgnoreCase))
             {
                 balance.SickUsed += leave.Days;
             }
