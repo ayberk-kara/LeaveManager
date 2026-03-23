@@ -194,6 +194,11 @@ namespace LeaveManager.App
             Leave newLeave,
             out string reason)
         {
+            if (employee.ManagerId == null)
+            {
+                reason = string.Empty;
+                return true;
+            }
             var assignments = _employeeRepository.GetAllManagerAssignments();
 
             var assignmentSet = assignments
