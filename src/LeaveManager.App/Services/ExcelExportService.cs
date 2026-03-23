@@ -298,10 +298,10 @@ namespace LeaveManager.App.Services
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = @"
-                SELECT annual_entitled, annual_used
-                FROM LeaveBalances
-                WHERE employee_id = @empId AND year = @year;
-            ";
+        SELECT annual_entitled, annual_used, annual_manual_adjust
+        FROM LeaveBalances
+        WHERE employee_id = @empId AND year = @year;
+    ";
             cmd.Parameters.AddWithValue("@empId", employeeId);
             cmd.Parameters.AddWithValue("@year", year);
 
@@ -310,7 +310,9 @@ namespace LeaveManager.App.Services
             {
                 int entitled = reader.GetInt32(0);
                 int used = reader.GetInt32(1);
-                return entitled - used;
+                int manual = reader.GetInt32(2);
+
+                return entitled - (used + manual); // 🔥 FIX
             }
             return 0;
         }
