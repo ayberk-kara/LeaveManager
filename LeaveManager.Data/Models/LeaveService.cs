@@ -26,16 +26,36 @@ namespace LeaveManager.App.Services
             _rules = new List<LeaveRule>
             {
                 new DateRangeRule(),
-                //new NoPastStartRule(),
                 new NoOverlapRule(),
                 new LongLeaveGapRule(),
                 new ManagerAssignmentExistsRule()
             };
         }
 
+        // ------------------------------------------------------------
+        // TYPE HELPERS (CRITICAL FIX)
+        // ------------------------------------------------------------
+        private bool IsAnnual(string type)
+        {
+            var t = type?.Trim();
+
+            return t.Equals("Yıllık", StringComparison.OrdinalIgnoreCase) ||
+                   t.Equals("Annual", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool IsSick(string type)
+        {
+            var t = type?.Trim();
+
+            return t.Equals("Hastalık", StringComparison.OrdinalIgnoreCase) ||
+                   t.Equals("Sick", StringComparison.OrdinalIgnoreCase) ||
+                   t.Equals("Rapor", StringComparison.OrdinalIgnoreCase);
+        }
+
         public bool TryAddLeave(Leave newLeave, out string errorMessage)
         {
             newLeave.Year = newLeave.StartDate.Year;
+
             using var connection = new SqliteConnection(ConnectionString);
             connection.Open();
 
@@ -78,13 +98,8 @@ namespace LeaveManager.App.Services
                     if (balance == null)
                         throw new Exception("Balance bulunamadı.");
 
-                    bool isAnnual =
-                        leavePart.Type.Equals("Yıllık", StringComparison.OrdinalIgnoreCase) ||
-                        leavePart.Type.Equals("Annual", StringComparison.OrdinalIgnoreCase);
-
-                    bool isSick =
-                        leavePart.Type.Equals("Hastalık", StringComparison.OrdinalIgnoreCase) ||
-                        leavePart.Type.Equals("Sick", StringComparison.OrdinalIgnoreCase);
+                    bool isAnnual = IsAnnual(leavePart.Type);
+                    bool isSick = IsSick(leavePart.Type);
 
                     if (isAnnual)
                     {
@@ -270,14 +285,12 @@ WHERE id = $id;
                 if (balance == null)
                     throw new Exception("Balance bulunamadı.");
 
-                if (leave.Type.Equals("Yıllık", StringComparison.OrdinalIgnoreCase) ||
-                    leave.Type.Equals("Annual", StringComparison.OrdinalIgnoreCase))
+                if (IsAnnual(leave.Type))
                 {
                     balance.AnnualUsed =
                         Math.Max(0, balance.AnnualUsed - leave.Days);
                 }
-                else if (leave.Type.Equals("Hastalık", StringComparison.OrdinalIgnoreCase) ||
-                         leave.Type.Equals("Sick", StringComparison.OrdinalIgnoreCase))
+                else if (IsSick(leave.Type))
                 {
                     balance.SickUsed =
                         Math.Max(0, balance.SickUsed - leave.Days);
@@ -309,14 +322,11 @@ WHERE id = $id;
             if (balance == null)
                 throw new Exception("Balance bulunamadı.");
 
-            if (leave.Type.Equals("Yıllık", StringComparison.OrdinalIgnoreCase)
-                || leave.Type.Equals("Annual", StringComparison.OrdinalIgnoreCase))
+            if (IsAnnual(leave.Type))
             {
                 balance.AnnualUsed += leave.Days;
             }
-            else if (leave.Type.Equals("Hastalık", StringComparison.OrdinalIgnoreCase)
-                     || leave.Type.Equals("Sick", StringComparison.OrdinalIgnoreCase)
-                     || leave.Type.Equals("Raporlu", StringComparison.OrdinalIgnoreCase))
+            else if (IsSick(leave.Type))
             {
                 balance.SickUsed += leave.Days;
             }

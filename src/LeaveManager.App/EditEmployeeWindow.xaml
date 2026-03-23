@@ -168,7 +168,7 @@
                                          Background="White"
                                          BorderBrush="{StaticResource BorderBrushSoft}"/>
 
-                                <TextBlock Text="Raporlu"
+                                <TextBlock Text="Rapor"
                                            FontSize="12"
                                            Margin="0,6,0,0"
                                            Foreground="{StaticResource TextSecondary}"
