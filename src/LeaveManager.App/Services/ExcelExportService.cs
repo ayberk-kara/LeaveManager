@@ -312,7 +312,7 @@ namespace LeaveManager.App.Services
                 int used = reader.GetInt32(1);
                 int manual = reader.GetInt32(2);
 
-                return entitled - (used + manual); // 🔥 FIX
+                return entitled + manual - used;
             }
             return 0;
         }
