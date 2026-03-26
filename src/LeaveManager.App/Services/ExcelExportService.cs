@@ -55,8 +55,12 @@ namespace LeaveManager.App.Services
             int grandSickUsed = 0;
 
             // ================= MANAGERS =================
+            int currentMonth = DateTime.Now.Month;
+
+            
             foreach (var my in managers)
             {
+                // ==== MANAGER ROW ====
                 sheet.Cell(row, 1).Value = index++;
                 sheet.Cell(row, 2).Value = my.FullName + " (M.Y.)";
 
@@ -77,13 +81,8 @@ namespace LeaveManager.App.Services
                 int sickUsed = GetSickUsed(connection, my.Id, year);
 
                 sheet.Cell(row, 15).Value = yearlyPlanned;
-                sheet.Cell(row, 15).Style.Fill.BackgroundColor = XLColor.LightGray;
-
                 sheet.Cell(row, 16).Value = sickUsed;
-                sheet.Cell(row, 16).Style.Fill.BackgroundColor = XLColor.LightGray;
-
                 sheet.Cell(row, 17).Value = remaining;
-                sheet.Cell(row, 17).Style.Fill.BackgroundColor = XLColor.LightGray;
 
                 var monthly = BuildMonthlySummary(annualLeaves, year);
 
@@ -101,59 +100,66 @@ namespace LeaveManager.App.Services
                 grandSickUsed += sickUsed;
 
                 row++;
-            }
 
-            // ================= PERSONNEL =================
-            foreach (var emp in personnel)
-            {
-                sheet.Cell(row, 1).Value = index++;
-                sheet.Cell(row, 2).Value = emp.FullName;
+                // ==== PERSONNEL UNDER THIS MANAGER (CURRENT MONTH) ====
+                var teamMembers = personnel
+                    .Where(emp =>
+                    {
+                        var managerId = employeeRepository
+                            .GetManagerIdForDate(emp.Id, new DateTime(year, currentMonth, 1));
 
-                var leaves = _leaveRepository.GetByEmployeeId(connection, emp.Id);
-
-                var annualLeaves = leaves
-                    .Where(l => l.Type.ToLower().Contains("yıllık") &&
-                                (l.StartDate.Year <= year && l.EndDate.Year >= year))
+                        return managerId == my.Id;
+                    })
+                    .OrderBy(e => e.FullName)
                     .ToList();
 
-                int yearlyPlanned = CalculateYearlyTotalDays(annualLeaves, year);
-                int remaining = GetRemainingAnnualLeave(connection, emp.Id, year);
-                int sickUsed = GetSickUsed(connection, emp.Id, year);
-
-                var monthly = BuildMonthlySummary(annualLeaves, year);
-
-                for (int month = 1; month <= 12; month++)
+                foreach (var emp in teamMembers)
                 {
-                    if (monthly.ContainsKey(month))
-                        sheet.Cell(row, month + 2).Value = monthly[month];
+                    sheet.Cell(row, 1).Value = index++;
+                    sheet.Cell(row, 2).Value = emp.FullName;
 
-                    int? assignedMyId = employeeRepository.GetManagerIdForDate(emp.Id, new DateTime(year, month, 1));
+                    var empLeaves = _leaveRepository.GetByEmployeeId(connection, emp.Id);
 
-                    if (assignedMyId.HasValue && managerColors.ContainsKey(assignedMyId.Value))
-                        sheet.Cell(row, month + 2).Style.Fill.BackgroundColor = managerColors[assignedMyId.Value];
-                    else
-                        sheet.Cell(row, month + 2).Style.Fill.BackgroundColor = XLColor.DarkRed;
+                    var empAnnualLeaves = empLeaves
+                        .Where(l => l.Type.ToLower().Contains("yıllık") &&
+                                    (l.StartDate.Year <= year && l.EndDate.Year >= year))
+                        .ToList();
 
-                    sheet.Cell(row, month + 2).Style.Alignment.WrapText = true;
+                    int empYearlyPlanned = CalculateYearlyTotalDays(empAnnualLeaves, year);
+                    int empRemaining = GetRemainingAnnualLeave(connection, emp.Id, year);
+                    int empSickUsed = GetSickUsed(connection, emp.Id, year);
 
-                    if (monthly.ContainsKey(month))
-                        monthlyTotals[month - 1] += ExtractDaysFromText(monthly[month]);
+                    var empMonthly = BuildMonthlySummary(empAnnualLeaves, year);
+
+                    for (int month = 1; month <= 12; month++)
+                    {
+                        if (empMonthly.ContainsKey(month))
+                            sheet.Cell(row, month + 2).Value = empMonthly[month];
+
+                        int? assignedMyId = employeeRepository
+                            .GetManagerIdForDate(emp.Id, new DateTime(year, month, 1));
+
+                        if (assignedMyId.HasValue && managerColors.ContainsKey(assignedMyId.Value))
+                            sheet.Cell(row, month + 2).Style.Fill.BackgroundColor = managerColors[assignedMyId.Value];
+                        else
+                            sheet.Cell(row, month + 2).Style.Fill.BackgroundColor = XLColor.DarkRed;
+
+                        sheet.Cell(row, month + 2).Style.Alignment.WrapText = true;
+
+                        if (empMonthly.ContainsKey(month))
+                            monthlyTotals[month - 1] += ExtractDaysFromText(empMonthly[month]);
+                    }
+
+                    sheet.Cell(row, 15).Value = empYearlyPlanned;
+                    sheet.Cell(row, 16).Value = empSickUsed;
+                    sheet.Cell(row, 17).Value = empRemaining;
+
+                    grandPlanned += empYearlyPlanned;
+                    grandRemaining += empRemaining;
+                    grandSickUsed += empSickUsed;
+
+                    row++;
                 }
-
-                sheet.Cell(row, 15).Value = yearlyPlanned;
-                sheet.Cell(row, 15).Style.Fill.BackgroundColor = XLColor.LightGray;
-
-                sheet.Cell(row, 16).Value = sickUsed;
-                sheet.Cell(row, 16).Style.Fill.BackgroundColor = XLColor.LightGray;
-
-                sheet.Cell(row, 17).Value = remaining;
-                sheet.Cell(row, 17).Style.Fill.BackgroundColor = XLColor.LightGray;
-
-                grandPlanned += yearlyPlanned;
-                grandRemaining += remaining;
-                grandSickUsed += sickUsed;
-
-                row++;
             }
 
             // ================= TOTAL =================
