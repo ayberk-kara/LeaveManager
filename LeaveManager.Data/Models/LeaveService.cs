@@ -4,6 +4,7 @@ using LeaveManager.Data.Storage;
 using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace LeaveManager.App.Services
 {
@@ -32,9 +33,6 @@ namespace LeaveManager.App.Services
             };
         }
 
-        // ------------------------------------------------------------
-        // TYPE HELPERS (CRITICAL FIX)
-        // ------------------------------------------------------------
         private bool IsAnnual(string type)
         {
             var t = type?.Trim();
@@ -101,6 +99,7 @@ namespace LeaveManager.App.Services
                     bool isAnnual = IsAnnual(leavePart.Type);
                     bool isSick = IsSick(leavePart.Type);
 
+                    
                     if (isAnnual)
                     {
                         int remaining =
@@ -131,7 +130,9 @@ namespace LeaveManager.App.Services
                     }
 
                     _leaveRepository.Add(connection, tx, leavePart);
-                    UpdateBalanceUsage(connection, tx, leavePart);
+
+                    
+                    RecalculateBalance(connection, tx, leavePart.EmployeeId, leavePart.Year);
                 }
 
                 tx.Commit();
@@ -146,9 +147,36 @@ namespace LeaveManager.App.Services
             }
         }
 
-        // ------------------------------------------------------------
-        // CROSS YEAR SPLIT
-        // ------------------------------------------------------------
+        
+        private void RecalculateBalance(SqliteConnection connection,
+                                        SqliteTransaction tx,
+                                        int employeeId,
+                                        int year)
+        {
+            var leaves = _leaveRepository.GetByEmployeeId(connection, employeeId)
+                .Where(l => l.Year == year)
+                .ToList();
+
+            int annualUsed = leaves
+                .Where(l => IsAnnual(l.Type))
+                .Sum(l => l.Days);
+
+            int sickUsed = leaves
+                .Where(l => IsSick(l.Type))
+                .Sum(l => l.Days);
+
+            var balance = _balanceRepository
+                .GetByEmployeeAndYear(connection, employeeId, year);
+
+            if (balance == null)
+                throw new Exception("Balance bulunamadı.");
+
+            balance.AnnualUsed = annualUsed;
+            balance.SickUsed = sickUsed;
+
+            _balanceRepository.Update(connection, tx, balance);
+        }
+
         private List<Leave> SplitLeaveByYear(Leave original)
         {
             var result = new List<Leave>();
@@ -191,9 +219,6 @@ namespace LeaveManager.App.Services
             return result;
         }
 
-        // ------------------------------------------------------------
-        // BALANCE CREATE IF MISSING
-        // ------------------------------------------------------------
         private void EnsureBalanceExists(SqliteConnection connection,
                                          SqliteTransaction tx,
                                          int employeeId,
@@ -213,8 +238,8 @@ namespace LeaveManager.App.Services
             if (prev != null)
             {
                 carry = prev.AnnualEntitled
-                + prev.AnnualManualAdjust
-                 - prev.AnnualUsed;
+                        + prev.AnnualManualAdjust
+                        - prev.AnnualUsed;
 
                 if (carry < 0)
                     carry = 0;
@@ -238,9 +263,6 @@ namespace LeaveManager.App.Services
             _balanceRepository.Delete(connection, tx, employeeId, year - 2);
         }
 
-        // ------------------------------------------------------------
-        // DELETE LEAVE
-        // ------------------------------------------------------------
         public void DeleteLeave(int leaveId)
         {
             using var connection = new SqliteConnection(ConnectionString);
@@ -256,7 +278,7 @@ namespace LeaveManager.App.Services
                 {
                     cmd.Transaction = tx;
                     cmd.CommandText = @"
-SELECT employee_id, type, days, start_date
+SELECT employee_id, type, start_date, end_date
 FROM Leaves
 WHERE id = $id;
 ";
@@ -268,37 +290,24 @@ WHERE id = $id;
                     if (!reader.Read())
                         throw new Exception("Leave bulunamadı.");
 
-                    var startDate = DateTime.Parse(reader.GetString(3));
+                    var startDate = DateTime.Parse(reader.GetString(2));
+                    var endDate = DateTime.Parse(reader.GetString(3));
 
                     leave = new Leave
                     {
                         EmployeeId = reader.GetInt32(0),
                         Type = reader.GetString(1),
-                        Days = reader.GetInt32(2),
+                        StartDate = startDate,
+                        EndDate = endDate,
+                        Days = (endDate - startDate).Days + 1,
                         Year = startDate.Year
                     };
                 }
 
-                var balance = _balanceRepository
-                    .GetByEmployeeAndYear(connection, leave.EmployeeId, leave.Year);
-
-                if (balance == null)
-                    throw new Exception("Balance bulunamadı.");
-
-                if (IsAnnual(leave.Type))
-                {
-                    balance.AnnualUsed =
-                        Math.Max(0, balance.AnnualUsed - leave.Days);
-                }
-                else if (IsSick(leave.Type))
-                {
-                    balance.SickUsed =
-                        Math.Max(0, balance.SickUsed - leave.Days);
-                }
-
-                _balanceRepository.Update(connection, tx, balance);
-
                 _leaveRepository.Delete(connection, tx, leaveId);
+
+
+                RecalculateBalance(connection, tx, leave.EmployeeId, leave.Year);
 
                 tx.Commit();
             }
@@ -307,31 +316,6 @@ WHERE id = $id;
                 tx.Rollback();
                 throw;
             }
-        }
-
-        // ------------------------------------------------------------
-        // BALANCE UPDATE
-        // ------------------------------------------------------------
-        private void UpdateBalanceUsage(SqliteConnection connection,
-                                        SqliteTransaction tx,
-                                        Leave leave)
-        {
-            var balance = _balanceRepository
-                .GetByEmployeeAndYear(connection, leave.EmployeeId, leave.Year);
-
-            if (balance == null)
-                throw new Exception("Balance bulunamadı.");
-
-            if (IsAnnual(leave.Type))
-            {
-                balance.AnnualUsed += leave.Days;
-            }
-            else if (IsSick(leave.Type))
-            {
-                balance.SickUsed += leave.Days;
-            }
-
-            _balanceRepository.Update(connection, tx, balance);
         }
     }
 }
