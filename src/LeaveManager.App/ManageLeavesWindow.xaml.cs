@@ -100,6 +100,8 @@ namespace LeaveManager.App
         {
             public Leave Leave { get; set; } = null!;
             public bool IsSelected { get; set; }
+
+            public int Days => (Leave.EndDate - Leave.StartDate).Days + 1;
         }
     }
 }
