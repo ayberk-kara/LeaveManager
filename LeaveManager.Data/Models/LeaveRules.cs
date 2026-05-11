@@ -239,7 +239,7 @@ namespace LeaveManager.App
 
     public class LongLeaveGapRule : LeaveRule
     {
-        public LongLeaveGapRule() : base("Uzun İzinler Arası 3 Ay Kuralı") { }
+        public LongLeaveGapRule() : base("Uzun İzinler Arası 2 Ay Kuralı") { }
 
         public override bool Validate(
             Employee employee,
@@ -250,10 +250,31 @@ namespace LeaveManager.App
         {
             var leaves = existingLeaves as IList<Leave> ?? existingLeaves.ToList();
 
+            
+            bool newLeaveIsSick =
+                newLeave.Type.Equals("Sick", StringComparison.OrdinalIgnoreCase) ||
+                newLeave.Type.Equals("Hastalık", StringComparison.OrdinalIgnoreCase) ||
+                newLeave.Type.Equals("Rapor", StringComparison.OrdinalIgnoreCase);
+
+            if (newLeaveIsSick)
+            {
+                reason = string.Empty;
+                return true;
+            }
+
             int newDuration = (newLeave.EndDate - newLeave.StartDate).Days + 1;
 
             foreach (var leave in leaves)
             {
+                
+                bool existingLeaveIsSick =
+                    leave.Type.Equals("Sick", StringComparison.OrdinalIgnoreCase) ||
+                    leave.Type.Equals("Hastalık", StringComparison.OrdinalIgnoreCase) ||
+                    leave.Type.Equals("Rapor", StringComparison.OrdinalIgnoreCase);
+
+                if (existingLeaveIsSick)
+                    continue;
+
                 int existingDuration = (leave.EndDate - leave.StartDate).Days + 1;
 
                 if (existingDuration > 5 && newDuration > 5)
@@ -267,9 +288,10 @@ namespace LeaveManager.App
                     else
                         continue;
 
-                    if (gap < 90)
+                    
+                    if (gap < 60)
                     {
-                        reason = "5 günden uzun iki izin arasında en az 3 ay olmalıdır.";
+                        reason = "5 günden uzun iki izin arasında en az 2 ay olmalıdır.";
                         return false;
                     }
                 }
