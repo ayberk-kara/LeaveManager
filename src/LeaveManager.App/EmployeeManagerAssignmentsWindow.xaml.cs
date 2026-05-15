@@ -97,7 +97,7 @@ namespace IzinProgrami
 
                     return ranges;
                 })
-                .OrderBy(a => a.DisplayText)
+                .OrderByDescending(a => new DateTime(a.Year, a.MonthEnd, 1))
                 .ToList();
 
             lstAssignments.ItemsSource = grouped;
